@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+{% if recommendations %}
+    These are your recommendations:
+    <ul>
+    {% for recommendation in recommendations %}
+        <li>{{ recommendation }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    No recommendations available.    
+{% endif %}
+</body>
+</html>
