@@ -3,15 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        .movie-card {
+            background-color: red;
+            margin: 10px;
+        }
+    </style>
 </head>
 <body>
 {% if recommendations %}
     These are your recommendations:
-    <ul>
+
     {% for recommendation in recommendations %}
-        <li>{{ recommendation }}</li>
+        <div class="movie-card">
+            <h1>Title: {{ recommendation.title }}</h1>
+            <p>
+                Genres:
+                {% for genre in recommendation.genres %}
+                    <span>{{ genre }}, </span>
+                {% endfor %}
+            </p>
+            <p>Rating: {{ recommendation.rating }}</p>
+            <p>Director: {{ recommendation.director }}</p>
+            <p>
+                Actors:
+                {% for actor in recommendation.actors %}
+                    <span>{{ actor }}, </span>
+                {% endfor %}
+            </p>
+            <p>Summary: {{ recommendation.synopsis }}</p>
+            <p>Poster: {{ recommendation.poster }}</p>
+            <img src="{{ recommendation.poster }}" width="100" height="100"/>
+        </div>
     {% endfor %}
-    </ul>
+
 {% else %}
     No recommendations available.    
 {% endif %}
