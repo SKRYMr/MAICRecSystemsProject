@@ -20,7 +20,7 @@ def recommend(request):
     try:
         # Check if user_id is in users
         if int(request.POST["user_id"]) not in users:
-            context = {"error": f"User: {request.POST["user_id"]} not found"}
+            context = {"error": f"User: {request.POST['user_id']} not found"}
             return render(request, "error.html", context)
     except ValueError:
         # user_id is not a number

@@ -1,0 +1,105 @@
+body {
+    margin-left: 10%;
+    margin-right: 10%;
+    background-color: #191919;
+}
+
+.my-box{
+    width: 100%;
+    height: 50%;
+    background-color: orange;
+}
+.bd2{
+    margin-left: 0%;
+    margin-right: 0%;
+    background-color: rgb(149, 225, 225);
+
+}
+
+.cst-border{
+    border: white;
+    border-width: 5px;
+}
+
+.header-text{
+  color: #BED754;
+}
+
+.line{
+    border-bottom: 3px solid #E3651D;
+    padding-bottom: 5px;
+}
+
+.my-cont{
+    width: calc(100vw/2);
+    background: #33CCCC; /* Fallback */
+    animation: color 9s infinite linear;
+    text-align: center;
+    padding: 2em;
+}
+
+.movie-poster{
+    width: 100%;
+    max-width: 200px;
+    height: 100%;
+    
+}
+
+.my-h1{
+    font-size: 100px;
+}
+.jersey-15-regular {
+    font-family: "Jersey 15", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  @keyframes color {
+    0%   { background: #33CCCC; }
+    20%  { background: #33CC36; }
+    40%  { background: #B8CC33; }
+    60%  { background: #FCCA00; }
+    80%  { background: #33CC36; }
+    100% { background: #33CCCC; }
+  }
+  
+  .body-background {
+    background: #33CCCC; /* Fallback */
+    animation: color 9s infinite linear;
+    text-align: center;
+    padding: 2em;
+  }
+
+  @keyframes scrollBg {
+    from {
+      transform: translateY(0px);
+    }
+    to {
+      transform: translateY(-330px);
+    }
+  }
+  
+  .scroll-bg {
+    height: 100%;
+    width: 100%;
+    opacity: 10%;
+    position: fixed;
+    padding-bottom: 330px;
+    background-color: #E8BA9B;
+    background-image: url('https://img.buzzfeed.com/buzzfeed-static/complex/images/gdv2pu6io6ekpg5r8mta/back-to-the-future.jpg?downsize=1840:*&output-format=auto&output-quality=auto');
+    background-size: cover;
+    animation: scrollBg 35s linear forwards;
+  }
+
+
+  .movie-row{
+    background-color: #750E21;
+    border-radius: 75px 0% 0% 75px;
+    border:2px rounded;
+  }
+
+  .movie-row2{
+    background-color: #f9c05b;
+    border-radius: 0px 75px 75px 0px;
+    border:2px rounded;
+  }
