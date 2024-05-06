@@ -19,7 +19,7 @@
             </div>
         </div>
     </div>
-    {% for recommendation in recommendations|slice:":20" %}
+    {% for recommendation in recommendations %} <!--|slice:":20"-->
     <div class="container mt-4 text-wrap">
         <div class="row mb-3 movie-row">
             <div class="col-1 text-center  align-items-center d-flex justify-content-center">
@@ -51,7 +51,6 @@
                         <p class="card-text">Description: {{ recommendation.synopsis }}</p>
                     </div>
                 </div>
-                <div class="divider"></div>
             </div>
             <div class="col-4 mt-2">
                 <div class="card mt-3 border-start border-end-0 border-top-0 border-bottom-0 border-warning" style="background-color: #750E21; color:whitesmoke;">

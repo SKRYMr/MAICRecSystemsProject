@@ -41,6 +41,9 @@ def recommend(request):
         user_predictions["poster"] = user_predictions["poster"].apply(lambda x: "https://image.tmdb.org/t/p/original" + x)
         user_predictions["rating"] = user_predictions["rating"].apply(lambda x: round(x, 1))
         
+        user_predictions = user_predictions.head(20)
+        
+        
         context = {"recommendations": user_predictions.to_dict('records'), "user_id":request.POST['user_id']}
         return render(request, "recommendations.html", context)
 

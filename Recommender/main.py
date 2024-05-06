@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from typing import Set, Literal
 import time
+import requests
+
 
 from .ex3 import find_k_nearest, get_top_movies, TIME_FUNCS, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
 
