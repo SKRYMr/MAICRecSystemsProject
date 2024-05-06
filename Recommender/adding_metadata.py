@@ -109,22 +109,37 @@ def extract_director(string):
 
 # Step 5 Merging movies with metadata
 
-metadata = pd.read_csv("./data/metadata_filtered.csv")
-credits = pd.read_csv("./data/credits_filtered.csv")
-movies = pd.read_csv("./data/movies.csv")
+# metadata = pd.read_csv("./data/metadata_filtered.csv")
+# credits = pd.read_csv("./data/credits_filtered.csv")
+# movies = pd.read_csv("./data/movies.csv")
+#
+# merged = pd.merge(movies, credits, on='movie_id', how='left')
+# merged = merged.drop(columns=["tmdbId"])
+# movies1 = pd.merge(merged, metadata, on='movie_id', how='left')
+# movies1 = movies1.drop(columns=["tmdbId","Unnamed: 0"])
+# movies1 = movies1.rename(columns={"cast": "actors"})
+#
+# movies1['year'] = movies1['title'].str[-5:-1]
+# movies1.title = movies1.title.str[:-7]
+#
+# movies1 = movies1[["movie_id", "title","director", "actors", "synopsis", "genres", "poster","year"]]
+#
+# movies1.to_csv("./data/movies_ext.csv", index=False)
 
-merged = pd.merge(movies, credits, on='movie_id', how='left')
-merged = merged.drop(columns=["tmdbId"])
-movies1 = pd.merge(merged, metadata, on='movie_id', how='left')
-movies1 = movies1.drop(columns=["tmdbId","Unnamed: 0"])
-movies1 = movies1.rename(columns={"cast": "actors"})
+# Step 6 Aligning the posters of movies_ext.csv
 
-movies1['year'] = movies1['title'].str[-5:-1]
-movies1.title = movies1.title.str[:-7]
+posters = pd.read_csv("./data/metadata_filtered.csv",usecols=["movie_id", "poster"])
+movies = pd.read_csv("./data/movies_ext.csv")
 
-movies1 = movies1[["movie_id", "title","director", "actors", "synopsis", "genres", "poster","year"]]
+merged = pd.merge(movies, posters, on='movie_id', how='left')
+merged["poster"] = merged["poster_y"]
+merged = merged[["movie_id", "title","director", "actors", "synopsis", "genres", "poster","year"]]
 
-movies1.to_csv("./data/movies_ext.csv", index=False)
+merged = merged.drop_duplicates(subset=['movie_id'])
+
+merged.to_csv("./data/movies_ext.csv",index=False)
+
+
 
 
 
