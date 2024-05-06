@@ -3,6 +3,21 @@ body {
     margin-right: 10%;
     background-color: #191919;
 }
+.checked{
+  color: yellow;
+}
+
+.fa-star{
+  font-size: 20px;
+  margin-left:2px;
+}
+
+#titleTest {
+  margin-right: 4px;
+  font-size: 23px;
+  display: flex;
+  align-items: center;
+}
 
 .my-box{
     width: 100%;
@@ -13,9 +28,7 @@ body {
     margin-left: 0%;
     margin-right: 0%;
     background-color: rgb(149, 225, 225);
-
 }
-
 .cst-border{
     border: white;
     border-width: 5px;
@@ -30,6 +43,11 @@ body {
     padding-bottom: 5px;
 }
 
+.divider {
+  border-left: 2px solid #BED754; /* Adjust thickness and color as needed */
+  height: 100%; /* Ensures the divider spans the full height of the card */
+}
+
 .my-cont{
     width: calc(100vw/2);
     background: #33CCCC; /* Fallback */
@@ -42,7 +60,6 @@ body {
     width: 100%;
     max-width: 200px;
     height: 100%;
-    
 }
 
 .my-h1{
@@ -64,33 +81,11 @@ body {
   }
   
   .body-background {
-    background: #33CCCC; /* Fallback */
+    background: #33CCCC; 
     animation: color 9s infinite linear;
     text-align: center;
     padding: 2em;
   }
-
-  @keyframes scrollBg {
-    from {
-      transform: translateY(0px);
-    }
-    to {
-      transform: translateY(-330px);
-    }
-  }
-  
-  .scroll-bg {
-    height: 100%;
-    width: 100%;
-    opacity: 10%;
-    position: fixed;
-    padding-bottom: 330px;
-    background-color: #E8BA9B;
-    background-image: url('https://img.buzzfeed.com/buzzfeed-static/complex/images/gdv2pu6io6ekpg5r8mta/back-to-the-future.jpg?downsize=1840:*&output-format=auto&output-quality=auto');
-    background-size: cover;
-    animation: scrollBg 35s linear forwards;
-  }
-
 
   .movie-row{
     background-color: #750E21;
@@ -98,8 +93,8 @@ body {
     border:2px rounded;
   }
 
-  .movie-row2{
-    background-color: #f9c05b;
-    border-radius: 0px 75px 75px 0px;
-    border:2px rounded;
+  
+
+  .error-msg{
+    font-size: 20px;
   }

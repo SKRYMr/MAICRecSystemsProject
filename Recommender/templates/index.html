@@ -20,7 +20,7 @@
         <form action="{% url 'Recommender:recommend' %}" method="POST">
         {% csrf_token %}
             <div class="input-group mb-3 justify-content-center"> 
-                <input type="number" class="form-control" placeholder="Enter your ID" name="user_id" id="user_id">       
+                <input type="number" min="0" class="form-control" placeholder="Enter your ID" name="user_id" id="user_id">       
                 <button class="btn btn-primary" type="submit" value="Get Recommendations">Unbore yourself!</button>
             </div>
     </form>
