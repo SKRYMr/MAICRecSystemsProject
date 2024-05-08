@@ -1,13 +1,8 @@
 import json
 import os
 import requests
-import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RecSystems5.settings')
-django.setup()
-# Cant write to csv and read it
-# have to put in database directly
-from Recommender.models import Movie
+from db import add_to_googledrivemovies
 
 ROOT = "extracted_content_ml-latest"
 API_KEY = '347f057cc85997cb119a516c59c66063'
@@ -146,31 +141,11 @@ if __name__ == "__main__":
             item = []
             for d in data:
                 if isinstance(d, list):
-                    item.append("; ".join([str(e) for e in d]))
+                    item.append("; ".join([str(e) for e in d]).replace("é", "e"))
+                elif isinstance(d, str):
+                    item.append(d.replace("é", "e"))
                 else:
                     item.append(d)
 
-            Movie(item[0],
-                 item[1],
-                 item[2],
-                 item[3],
-                 item[4],
-                 item[5],
-                 item[6],
-                 item[7],
-                 item[8],
-                 item[9],
-                 item[10],
-                 item[11],
-                 item[12],
-                 item[13],
-                 item[14],
-                 item[15],
-                 item[16],
-                 item[17],
-                 item[18]).save()
+            add_to_googledrivemovies(item)
 
-
-            break
-            # d.save()
-            # data.append(d)
