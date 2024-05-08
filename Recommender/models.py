@@ -1,8 +1,29 @@
 from django.db import models
 
+
 # Create your models here.
+class Movie(models.Model):
+    movie_id = models.IntegerField(primary_key=True)
+    tmdb_id = models.IntegerField(null=True, blank=True)
+    title = models.CharField(max_length=100, null=True, blank=True)
+    genres = models.CharField(max_length=100, null=True, blank=True)
+    age_ratings = models.CharField(max_length=50, null=True, blank=True)
+    avg_ratings = models.FloatField(null=True, blank=True)
+    num_ratings = models.IntegerField(null=True, blank=True)
+    language = models.CharField(max_length=500)
+    actors = models.CharField(max_length=500, null=True, blank=True)
+    directors = models.CharField(max_length=100, null=True, blank=True)
+    writer = models.CharField(max_length=100, null=True, blank=True)
+    release_year = models.IntegerField(null=True, blank=True)
+    release_date = models.CharField(max_length=500)
+    runtime = models.IntegerField(null=True, blank=True)
+    imdb_link = models.CharField(max_length=500)
+    poster = models.CharField(max_length=100, null=True, blank=True)
+    youtube_trailer_video_id = models.CharField(max_length=100)
+    summary = models.TextField(max_length=5000, null=True, blank=True)
+    tmdb_recommendation = models.CharField(max_length=500, null=True, blank=True)
 
-
+"""
 class Movie(models.Model):
     movie_id = models.IntegerField(primary_key=True)
     title = models.CharField(max_length=500)
@@ -14,11 +35,9 @@ class Movie(models.Model):
     poster = models.CharField(max_length=100, null=True, blank=True)
 
     def get_base_url(self):
-        """
-        Returns the base url for the movie posters, just append whatever is in the "poster" field.
-        """
+        # Returns the base url for the movie posters, just append whatever is in the "poster" field.
         return "https://image.tmdb.org/t/p/original"
-
+"""
 
 class User(models.Model):
     user_id = models.IntegerField(primary_key=True)

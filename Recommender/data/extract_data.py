@@ -1,14 +1,17 @@
 import json
 import os
-import pandas as pd
-from tqdm import tqdm
 import requests
+import django
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RecSystems5.settings')
+django.setup()
 # Cant write to csv and read it
 # have to put in database directly
+from Recommender.models import Movie
 
 ROOT = "extracted_content_ml-latest"
 API_KEY = '347f057cc85997cb119a516c59c66063'
+
 
 def get_poster(poster, tmdb_id):
     if poster is not None:
@@ -77,8 +80,8 @@ def extract_data_from_file(data):
     poster = get_poster(data["movielens"]["posterPath"], data["movielens"]["tmdbMovieId"])  # str
     title = get_str_item(data["movielens"]["originalTitle"])  # str
     genres = get_array_items(data["movielens"]["genres"])  # List[str]
-    actors = get_array_items(data["movielens"]["actors"] ) # List[str]
-    directors = get_array_items(data["movielens"]["directors"] ) # List[str]
+    actors = get_array_items(data["movielens"]["actors"])  # List[str]
+    directors = get_array_items(data["movielens"]["directors"])  # List[str]
     writer = get_array_items(data["imdb"]["writers"])  # List[str]
     age_ratings = get_str_item(data["movielens"]["mpaa"])  # str
 
@@ -110,6 +113,7 @@ def extract_data_from_file(data):
     ]
 
 
+
 if __name__ == "__main__":
 
     COL_NAMES = [
@@ -134,11 +138,39 @@ if __name__ == "__main__":
         "tmdb_recommendation"
     ]
 
-    data = []
-
-
-    for file_name in tqdm(os.listdir(ROOT)):
+    for file_name in os.listdir(ROOT):
         with open(os.path.join(ROOT, file_name), "r") as file:
-            d = extract_data_from_file(json.load(file))
-            data.append(d)
+            data = extract_data_from_file(json.load(file))
 
+            # Convert all list to str
+            item = []
+            for d in data:
+                if isinstance(d, list):
+                    item.append("; ".join([str(e) for e in d]))
+                else:
+                    item.append(d)
+
+            Movie(item[0],
+                 item[1],
+                 item[2],
+                 item[3],
+                 item[4],
+                 item[5],
+                 item[6],
+                 item[7],
+                 item[8],
+                 item[9],
+                 item[10],
+                 item[11],
+                 item[12],
+                 item[13],
+                 item[14],
+                 item[15],
+                 item[16],
+                 item[17],
+                 item[18]).save()
+
+
+            break
+            # d.save()
+            # data.append(d)
