@@ -1,3 +1,11 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9a95241dbaf1b7663298bbe8584f70ce001049e3b4bcd685ca767c4405dd8aca
-size 458
+from django.urls import path
+from . import views
+
+app_name = "Recommender"
+urlpatterns = [
+    path("", views.index, name="index"),
+    path("recommend/user/", views.recommend_user, name="recommend_user"),
+    path("recommend/movie/<int:movie_id>/", views.recommend_item, name="recommend_item"),
+    path("recommend/movie/", views.recommend_item, name="recommend_item"),
+    path("compute_vecs", views.compute_synopsis_vecs, name="compute_synopsis_vecs"),
+]

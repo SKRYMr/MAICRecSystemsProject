@@ -1,3 +1,100 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2d5a530b4f56af9a7992ede289cc82caee32041278ae97036821cddc5b3ba0d1
-size 1666
+body {
+    margin-left: 10%;
+    margin-right: 10%;
+    background-color: #191919;
+}
+.checked{
+  color: yellow;
+}
+
+.fa-star{
+  font-size: 20px;
+  margin-left:2px;
+}
+
+#titleTest {
+  margin-right: 4px;
+  font-size: 23px;
+  display: flex;
+  align-items: center;
+}
+
+.my-box{
+    width: 100%;
+    height: 50%;
+    background-color: orange;
+}
+.bd2{
+    margin-left: 0%;
+    margin-right: 0%;
+    background-color: rgb(149, 225, 225);
+}
+.cst-border{
+    border: white;
+    border-width: 5px;
+}
+
+.header-text{
+  color: #BED754;
+}
+
+.line{
+    border-bottom: 3px solid #E3651D;
+    padding-bottom: 5px;
+}
+
+.divider {
+  border-left: 2px solid #BED754; /* Adjust thickness and color as needed */
+  height: 100%; /* Ensures the divider spans the full height of the card */
+}
+
+.my-cont{
+    width: calc(100vw/2);
+    background: #33CCCC; /* Fallback */
+    animation: color 9s infinite linear;
+    text-align: center;
+    padding: 2em;
+}
+
+.movie-poster{
+    width: 100%;
+    max-width: 200px;
+    height: 100%;
+}
+
+.my-h1{
+    font-size: 100px;
+}
+.jersey-15-regular {
+    font-family: "Jersey 15", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  @keyframes color {
+    0%   { background: #33CCCC; }
+    20%  { background: #33CC36; }
+    40%  { background: #B8CC33; }
+    60%  { background: #FCCA00; }
+    80%  { background: #33CC36; }
+    100% { background: #33CCCC; }
+  }
+  
+  .body-background {
+    background: #33CCCC; 
+    animation: color 9s infinite linear;
+    text-align: center;
+    padding: 2em;
+  }
+
+  .movie-row{
+    background-color: #750E21;
+    border-radius: 75px 0% 0% 75px;
+    border:2px rounded;
+  }
+
+  
+
+  .error-msg{
+    font-size: 20px;
+  }
