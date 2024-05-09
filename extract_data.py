@@ -64,11 +64,11 @@ def extract_data_from_file(data):
     movie_id = data["movielensId"]  # int
     tmdb_id = data["movielens"]["tmdbMovieId"]  # int
     imdb_link = get_str_item(data["imdb"]["imdbLink"])  # str
-    language = get_array_items(data["movielens"]["languages"])  # List[str]
+    languages = get_array_items(data["movielens"]["languages"])  # List[str]
     release_date = get_str_item(data["movielens"]["releaseDate"])  # str
     release_year = get_release_year(data["movielens"]["releaseYear"])  # str
     runtime = get_num_item(data["movielens"]["runtime"])  # int
-    youtube_trailer_video_id = data["movielens"]["youtubeTrailerIds"]  # List[str]
+    youtube_trailer_video_ids = data["movielens"]["youtubeTrailerIds"]  # List[str]
     synopsis = get_str_item(data["movielens"]["plotSummary"])  # str
     num_ratings = get_num_item(data["movielens"]["numRatings"])  # int
     avg_ratings = get_num_item(data["movielens"]["avgRating"])  # int
@@ -77,13 +77,13 @@ def extract_data_from_file(data):
     genres = get_array_items(data["movielens"]["genres"])  # List[str]
     actors = get_array_items(data["movielens"]["actors"])  # List[str]
     directors = get_array_items(data["movielens"]["directors"])  # List[str]
-    writer = get_array_items(data["imdb"]["writers"])  # List[str]
+    writers = get_array_items(data["imdb"]["writers"])  # List[str]
     age_ratings = get_str_item(data["movielens"]["mpaa"])  # str
 
     try:
-        tmdb_recommendation = data["tmdb"]["recommendations"]  # List[str], rec based on tmdb_id
+        tmdb_recommendations = data["tmdb"]["recommendations"]  # List[str], rec based on tmdb_id
     except:
-        tmdb_recommendation = []
+        tmdb_recommendations = []
 
     return [
         movie_id,
@@ -93,18 +93,18 @@ def extract_data_from_file(data):
         age_ratings,
         avg_ratings,
         num_ratings,
-        language,
+        languages,
         actors,
         directors,
-        writer,
+        writers,
         release_year,
         release_date,
         runtime,
         imdb_link,
         poster,
-        youtube_trailer_video_id,
+        youtube_trailer_video_ids,
         synopsis,
-        tmdb_recommendation
+        tmdb_recommendations
     ]
 
 
@@ -118,18 +118,18 @@ if __name__ == "__main__":
         "age_ratings",
         "avg_ratings",
         "num_ratings",
-        "language",
+        "languages",
         "actors",
         "directors",
-        "writer",
+        "writers",
         "release_year",
         "release_date",
         "runtime",
         "imdb_link",
         "poster",
-        "youtube_trailer_video_id",
+        "youtube_trailer_video_ids",
         "synopsis",
-        "tmdb_recommendation"
+        "tmdb_recommendations"
     ]
 
     for file_name in os.listdir(ROOT):

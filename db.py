@@ -4,7 +4,7 @@ con = sqlite3.connect("db.sqlite3")
 cur = con.cursor()
 
 # Create table
-# cur.execute("CREATE TABLE googledrivemovies (movie_id, tmdb_id, title, genres, age_ratings, avg_ratings, num_ratings, languages, actors, directors, writer, release_year, release_date, runtime, imdb_link, poster, youtube_trailer_video_id, synopsis, tmdb_recommendation)")
+# cur.execute("CREATE TABLE googledrivemovies (movie_id, tmdb_id, title, genres, age_ratings, avg_ratings, num_ratings, languages, actors, directors, writers, release_year, release_date, runtime, imdb_link, poster, youtube_trailer_video_ids, synopsis, tmdb_recommendations)")
 
 
 def add_to_googledrivemovies(item):
@@ -17,8 +17,8 @@ def add_to_googledrivemovies(item):
     query = """
     INSERT INTO googledrivemovies (
         movie_id, tmdb_id, title, genres, age_ratings, avg_ratings, num_ratings, languages, 
-        actors, directors, writer, release_year, release_date, runtime, imdb_link, 
-        poster, youtube_trailer_video_id, synopsis, tmdb_recommendation
+        actors, directors, writers, release_year, release_date, runtime, imdb_link, 
+        poster, youtube_trailer_video_ids, synopsis, tmdb_recommendations
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     try:
