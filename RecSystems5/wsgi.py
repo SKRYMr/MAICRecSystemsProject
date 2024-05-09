@@ -1,16 +1,3 @@
-"""
-WSGI config for RecSystems5 project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.1/howto/deployment/wsgi/
-"""
-
-import os
-
-from django.core.wsgi import get_wsgi_application
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RecSystems5.settings')
-
-application = get_wsgi_application()
+version https://git-lfs.github.com/spec/v1
+oid sha256:e79c66f29af8d956dab92c39184456222e9e4a6ce33f6e55bccdac9aa24a76c7
+size 399

@@ -1,16 +1,3 @@
-"""
-ASGI config for RecSystems5 project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.1/howto/deployment/asgi/
-"""
-
-import os
-
-from django.core.asgi import get_asgi_application
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RecSystems5.settings')
-
-application = get_asgi_application()
+version https://git-lfs.github.com/spec/v1
+oid sha256:2baa5717861db7e5acded07ce08aa3338d0b729ffb85caf27bbfacc1c07e0efa
+size 399
