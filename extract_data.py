@@ -69,7 +69,7 @@ def extract_data_from_file(data):
     release_year = get_release_year(data["movielens"]["releaseYear"])  # str
     runtime = get_num_item(data["movielens"]["runtime"])  # int
     youtube_trailer_video_id = data["movielens"]["youtubeTrailerIds"]  # List[str]
-    summary = get_str_item(data["movielens"]["plotSummary"])  # str
+    synopsis = get_str_item(data["movielens"]["plotSummary"])  # str
     num_ratings = get_num_item(data["movielens"]["numRatings"])  # int
     avg_ratings = get_num_item(data["movielens"]["avgRating"])  # int
     poster = get_poster(data["movielens"]["posterPath"], data["movielens"]["tmdbMovieId"])  # str
@@ -103,10 +103,9 @@ def extract_data_from_file(data):
         imdb_link,
         poster,
         youtube_trailer_video_id,
-        summary,
+        synopsis,
         tmdb_recommendation
     ]
-
 
 
 if __name__ == "__main__":
@@ -129,7 +128,7 @@ if __name__ == "__main__":
         "imdb_link",
         "poster",
         "youtube_trailer_video_id",
-        "summary",
+        "synopsis",
         "tmdb_recommendation"
     ]
 
