@@ -11,10 +11,9 @@
     <div>
         <div  style="font-size:2.0em;">Operation completed successfully.</div>
         <div style="font-size:1.5em;">
-            <ul>
-                <li>Count: {{ count }}</li>
-                <li>Total: {{ total }}</li>
-            </ul>
+            {% for key, val in context.items %}
+            {{ key|title }}: {{ val }}<br>
+            {% endfor %}
         </div>
     </div>
 </body>

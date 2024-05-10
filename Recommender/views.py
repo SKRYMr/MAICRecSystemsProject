@@ -6,6 +6,7 @@ from django_pandas.io import read_frame
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.shortcuts import render
+from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations
 from .models import User, Movie, Rating
 
@@ -27,7 +28,15 @@ def compute_synopsis_vecs(request):
         movie.synopsis_vec = compute_synopsis_vec(synopsis).dumps().hex()
         movie.save()
         count += 1
-    return render(request, "success.html", {"total": total, "count": count})
+    return render(request, "success.html", {"context": {"total": total, "count": count}})
+
+
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def extract_drive_data(request):
+    total, created, updated = extract_data(GOOGLE_DRIVE_ROOT)
+    print(f"Total: {total}, Created: {created}, Updated: {updated}")
+    return render(request, "success.html", {"context": {"total": total, "created": created, "updated": updated}})
 
 
 def recommend_item(request, movie_id: int = 0):

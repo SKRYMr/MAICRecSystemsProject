@@ -7,7 +7,7 @@ class Movie(models.Model):
     tmdb_id = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=200, null=True, blank=True)
     genres = models.TextField(null=True, blank=True)
-    age_ratings = models.CharField(max_length=50, null=True, blank=True)
+    age_rating = models.CharField(max_length=50, null=True, blank=True)
     avg_ratings = models.FloatField(null=True, blank=True)
     num_ratings = models.IntegerField(null=True, blank=True)
     languages = models.TextField(null=True, blank=True)
@@ -23,6 +23,8 @@ class Movie(models.Model):
     synopsis = models.TextField(max_length=5000, null=True)
     synopsis_vec = models.TextField(null=True)
     tmdb_recommendations = models.TextField(null=True, blank=True)
+    tmdb_keywords = models.TextField(null=True, blank=True)
+    tmdb_popularity = models.FloatField(null=True, blank=True)
 
     @staticmethod
     def get_base_url():
