@@ -18,11 +18,14 @@ class RecommenderConfig(AppConfig):
         import fasttext.util
         import nltk
         import os
+        quiet = False
         if not os.path.isfile(RecommenderConfig.FASTTEXT_MODEL_FILE):
             fasttext.util.download_model("en", if_exists="ignore")
         else:
             print("FastText model file already up-to-date.")
-        nltk.download("stopwords")
-        nltk.download("punkt")
-        nltk.download("omw-1.4")
+            quiet = True
+        nltk.download("stopwords", quiet=quiet)
+        nltk.download("punkt", quiet=quiet)
+        nltk.download("omw-1.4", quiet=quiet)
+        nltk.download("names", quiet=quiet)
         RecommenderConfig.first_startup = False

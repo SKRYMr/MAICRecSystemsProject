@@ -1,10 +1,13 @@
 import fasttext
 import re
 from .apps import RecommenderConfig as config
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, names
 from nltk.tokenize import word_tokenize
 
-stopwords = set(stopwords.words("english"))
+# Remove common english stopwords and also names.
+# Having names in the vectors make it so that movies with similarly-named protagonists
+# get recommended together.
+stopwords = set(stopwords.words("english")).union(set(names.words()))
 
 ft = fasttext.load_model(config.FASTTEXT_MODEL_FILE)
 
@@ -86,4 +89,4 @@ def rm_stopwords(text):
 def preprocess_pipeline(text):
     tokens = tokenize(text)
     no_stopwords = rm_stopwords(tokens)
-    return ' '.join(no_stopwords)
+    return " ".join(no_stopwords)
