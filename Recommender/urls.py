@@ -9,4 +9,7 @@ urlpatterns = [
     path("recommend/movie/", views.recommend_item, name="recommend_item"),
     path("compute_vecs/", views.compute_synopsis_vecs, name="compute_synopsis_vecs"),
     path("extract_data/drive/", views.extract_drive_data, name="extract_drive_data"),
+
+    path("search", views.search, name="search"),
+    path("search_db", views.search_db, name="search_db"),
 ]

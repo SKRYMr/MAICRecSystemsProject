@@ -1,10 +1,14 @@
 import pandas as pd
 import pickle
+import sqlite3
+
+from django.http import JsonResponse
 from scipy import spatial
 from sortedcontainers import SortedList
 from django_pandas.io import read_frame
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import render
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations
@@ -42,6 +46,7 @@ def extract_drive_data(request):
 def recommend_item(request, movie_id: int = 0):
     if request.method == "POST":
         movie_id = request.POST.get("movie_id")
+
     target_movie = Movie.objects.get(movie_id=movie_id)
     movie_title = target_movie.title
     synopsis_vec = pickle.loads(bytes.fromhex(target_movie.synopsis_vec))
@@ -60,7 +65,8 @@ def recommend_item(request, movie_id: int = 0):
         if len(top_scores) < 5 or similarity > top_scores[-1][0]:
             top_scores.add((similarity, movie.movie_id))
     top_scores = top_scores[:5]
-    recommended_movies = read_frame(Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])).set_index("movie_id")
+    recommended_movies = read_frame(
+        Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])).set_index("movie_id")
     recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * 5 for score, _ in top_scores]
     recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False))
     return render(request, "recommendations.html",
@@ -104,3 +110,31 @@ def recommend_user(request):
         context = {"error": f"An unexpected error has occurred"}
         return render(request, "error.html", context)
 
+
+def search(request):
+    return render(request, "search.html")
+
+
+def search_db(request):
+    con = sqlite3.connect("db.sqlite3")
+    cur = con.cursor()
+
+    items = ["movie_id", "title", "poster"]
+
+    search_term = request.GET["query"]
+    offset = int(request.GET["offset"])
+
+    query = "SELECT movie_id, title, poster FROM Recommender_movie"
+
+    if search_term:
+        query += f" WHERE title LIKE '%{search_term}%'"
+
+    query += f" LIMIT 50 OFFSET {offset}"
+
+    results = cur.execute(query).fetchall()
+
+    cur.close()
+
+    data = [{k: v for k, v in zip(items, movie)} for movie in results]
+
+    return JsonResponse({"movies": data})
