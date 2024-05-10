@@ -17,8 +17,8 @@ def index(request):
 
 @user_passes_test(lambda u: u.is_superuser)
 @transaction.atomic
-def compute_synopsis_vecs(request):
-    movies = Movie.objects.all()
+def compute_synopsis_vecs(request, force: bool = True):
+    movies = Movie.objects.all() if force else Movie.objects.filter(synopsis_vec__isnull=True)
     count = 0
     total = len(movies)
     for movie in movies:
