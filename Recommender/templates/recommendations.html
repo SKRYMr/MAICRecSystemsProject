@@ -77,8 +77,8 @@
                                 {% endif %}
                             {% endfor %}
                         </p>
-                        <p class="card-text">Director: {{ recommendation.director }}</p>
-                        <p class="card-text">Neighbours Rating: {{ recommendation.rating }}</p>
+                        <p class="card-text">Directors: {{ recommendation.directors|join:", " }}</p>
+                        <p class="card-text">{{ metric|title }}: {{ recommendation.rating }}</p>
 
                     </div>
                 </div>

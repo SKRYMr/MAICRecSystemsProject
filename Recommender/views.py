@@ -9,6 +9,7 @@ from django.shortcuts import render
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations
 from .models import User, Movie, Rating
+from typing import Literal
 
 
 def index(request):
@@ -17,7 +18,8 @@ def index(request):
 
 @user_passes_test(lambda u: u.is_superuser)
 @transaction.atomic
-def compute_synopsis_vecs(request, force: bool = True):
+def compute_synopsis_vecs(request):
+    force = request.GET.get("force", True)
     movies = Movie.objects.all() if force else Movie.objects.filter(synopsis_vec__isnull=True)
     count = 0
     total = len(movies)
@@ -25,7 +27,9 @@ def compute_synopsis_vecs(request, force: bool = True):
         synopsis = movie.synopsis
         if synopsis is None:
             continue
-        movie.synopsis_vec = compute_synopsis_vec(synopsis).dumps().hex()
+        movie.synopsis_vec = compute_synopsis_vec(synopsis)
+        if movie.synopsis_vec is not None:
+            movie.synopsis_vec = movie.synopsis_vec.dumps().hex()
         movie.save()
         count += 1
     return render(request, "success.html", {"context": {"total": total, "count": count}})
@@ -39,14 +43,20 @@ def extract_drive_data(request):
     return render(request, "success.html", {"context": {"total": total, "created": created, "updated": updated}})
 
 
-def recommend_item(request, movie_id: int = 0):
+def recommend_item(request, movie_id: int = 0, metric: Literal["cosine", "euclidean"] = "cosine"):
     if request.method == "POST":
-        movie_id = request.POST.get("movie_id")
+        try:
+            movie_id = request.POST.get("movie_id")
+        except KeyError:
+            return render(request, "error.html", {"error": "Movie ID is required"})
+        metric = request.POST.get("metric", "cosine")
+    if request.method == "GET":
+        metric = request.GET.get("metric", "cosine")
     target_movie = Movie.objects.get(movie_id=movie_id)
     movie_title = target_movie.title
     synopsis_vec = pickle.loads(bytes.fromhex(target_movie.synopsis_vec))
-    all_movies_with_vecs = Movie.objects.filter(synopsis_vec__isnull=False)
-    top_scores = SortedList(key=lambda x: -x[0])
+    all_movies_with_vecs = Movie.objects.filter(synopsis_vec__isnull=False).exclude(movie_id=movie_id)
+    top_scores = SortedList(key=lambda x: -x[0]) if metric == "cosine" else SortedList(key=lambda x: x[0])
     if synopsis_vec is None:
         synopsis = target_movie.synopsis
         if synopsis is None:
@@ -56,17 +66,21 @@ def recommend_item(request, movie_id: int = 0):
         target_movie.save()
     for movie in all_movies_with_vecs:
         other_vec = pickle.loads(bytes.fromhex(movie.synopsis_vec))
-        similarity = round(1 - spatial.distance.cosine(synopsis_vec, other_vec), 4)
-        if len(top_scores) < 5 or similarity > top_scores[-1][0]:
+        if metric == "cosine":
+            similarity = round(1 - spatial.distance.cosine(synopsis_vec, other_vec), 4)
+        else:
+            similarity = round(spatial.distance.euclidean(synopsis_vec, other_vec), 4)
+        if top_scores.bisect_right((similarity, movie.movie_id)) < 5:
             top_scores.add((similarity, movie.movie_id))
     top_scores = top_scores[:5]
     recommended_movies = read_frame(Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])).set_index("movie_id")
     recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * 5 for score, _ in top_scores]
-    recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False))
+    recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=4)
     return render(request, "recommendations.html",
                   {"recommendations": recommended_movies.to_dict("records"),
                    "movie_id": movie_id,
-                   "movie_title": movie_title})
+                   "movie_title": movie_title,
+                   "metric": "similarity"})
 
 
 def recommend_user(request):

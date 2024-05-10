@@ -1,7 +1,6 @@
 from django.db import models
 
 
-# Create your models here.
 class Movie(models.Model):
     movie_id = models.IntegerField(primary_key=True)
     tmdb_id = models.IntegerField(null=True, blank=True)
@@ -27,7 +26,7 @@ class Movie(models.Model):
     tmdb_popularity = models.FloatField(null=True, blank=True)
 
     @staticmethod
-    def get_base_url():
+    def get_base_url() -> str:
         """
         Returns the base url for the movie posters, just append whatever is in the "poster" field.
         """
