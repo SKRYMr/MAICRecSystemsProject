@@ -32,7 +32,7 @@
         const searchValue = document.getElementById("searchBar").value
         const response = await fetch(`/search_db?query=${searchValue}&offset=0`)
         const data = await response.json()
-        console.log(data.movies.length)
+
         displayMovies(data.movies, false)
     }
 
@@ -41,7 +41,7 @@
         const searchValue = document.getElementById("searchBar").value
         const response = await fetch(`/search_db?query=${searchValue}&offset=${currentDisplayedMovies}`)
         const data = await response.json()
-        console.log(data.movies.length)
+
         displayMovies(data.movies, true)
     }
 
@@ -50,7 +50,7 @@
         showLoading()
         const response = await fetch(`/search_db?offset=0&query=`)
         const data = await response.json()
-        console.log(data.movies.length)
+
         displayMovies(data.movies, false)
     }
 
@@ -98,7 +98,6 @@
 
             resultsDiv.appendChild(a)
         })
-
     }
 </script>
 </body>
