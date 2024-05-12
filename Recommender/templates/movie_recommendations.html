@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+15&display=swap" rel="stylesheet">
+    <title>Recommender System</title>
+</head>
+<body>
+    <h1>Movie Recommendations</h1>
+    {% if target_movie %}
+        <p>Target movie: {{ target_movie.title }}</p>
+    {% endif %}
+
+    {% if recommendations %}
+        {% for method, movies in recommendations.items %}
+            <h3>{{ method }}</h3>
+            {% for movie in movies %}
+                <p>{{ movie.title }}</p>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+</body>
+</html>
