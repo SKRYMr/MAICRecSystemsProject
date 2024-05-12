@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
+from enum import Enum
 from typing import Set, Literal, Union
 
 from .core import find_k_nearest, get_top_movies, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
@@ -14,6 +15,26 @@ if DEBUG:
     RANDOM_SEED = 42
     np.random.seed(RANDOM_SEED)
     random.seed(RANDOM_SEED)
+
+# Age Ratings defined by mpaa + TV parental guidelines
+# https://en.wikipedia.org/wiki/Motion_Picture_Association_film_rating_system
+# https://en.wikipedia.org/wiki/TV_Parental_Guidelines
+AgeRatingsDict = {"G": 1,
+                  "TVG": 1, "TV-G": 1,
+                  "TVY": 1, "TV-Y": 1,
+                  "PG": 2,
+                  "TVPG": 2, "TV-PG": 2,
+                  "TVY7": 2, "TV-Y7": 2,
+                  "PG13": 3, "PG-13": 3,
+                  "TV14": 4, "TV-14": 4,
+                  "R": 5,
+                  "TVMA": 5, "TV-MA": 5,
+                  "NR": 5, "UR": 5, "NOT RATED": 5, "UNRATED": 5,
+                  "NC17": 6, "NC-17": 6}
+AgeRating = Enum("AgeRating", AgeRatingsDict)
+# This is used to determine whether it's safe to recommend a movie that doesn't have a record for the age rating.
+# If the requested age rating is higher than this value, then the movie will be recommended regardless.
+SAFE_AGE_RATING = AgeRating["PG-13"].value
 
 
 def get_movies_recommendations(user_id: int, users: Set[int], ratings: pd.DataFrame, movies: pd.DataFrame,
@@ -44,3 +65,20 @@ def format_movie_recommendations(recommendations: pd.DataFrame, top_n: int = 0, 
     recommendations["poster"] = recommendations["poster"].apply(lambda x: Movie.get_base_url() + x)
     recommendations["rating"] = recommendations["rating"].apply(lambda x: round(x, round_to))
     return recommendations.head(top_n) if top_n > 0 else recommendations
+
+
+def compare_age_rating(age_rating: str, target_rating: str):
+    target_rating = AgeRating[target_rating.upper()].value
+    if (not age_rating or age_rating not in AgeRatingsDict) and target_rating <= SAFE_AGE_RATING:
+        return False
+    elif not age_rating or age_rating not in AgeRatingsDict:
+        return True
+    try:
+        age_rating = AgeRating[age_rating.upper()].value
+    except KeyError as e:
+        print("Error in compare_age_rating:")
+        print(e)
+        print(f"Age Rating: {age_rating}")
+        print(f"Target Rating: {target_rating}")
+        return False
+    return age_rating <= target_rating

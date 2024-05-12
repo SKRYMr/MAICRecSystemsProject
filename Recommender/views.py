@@ -10,9 +10,9 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
-from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations
+from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
 from .models import User, Movie, Rating
-from typing import Literal
+from typing import Literal, List
 
 
 def index(request):
@@ -46,20 +46,31 @@ def extract_drive_data(request):
     return render(request, "success.html", {"context": {"total": total, "created": created, "updated": updated}})
 
 
-def recommend_item(request, movie_id: int = 0, metric: Literal["cosine", "euclidean"] = "cosine"):
+def recommend_item(request, movie_id: int = 0,
+                   metric: Literal["cosine", "euclidean"] = "cosine",
+                   genres: List[str] = None,
+                   pg: str = None,
+                   top_n: int = 5):
     if request.method == "POST":
         try:
             movie_id = request.POST.get("movie_id")
+            genres = request.POST.get("genres", None)
+            pg = request.POST.get("pg", None)
+            top_n = request.POST.get("top_n", 5)
         except KeyError:
             return render(request, "error.html", {"error": "Movie ID is required"})
         metric = request.POST.get("metric", "cosine")
     if request.method == "GET":
         metric = request.GET.get("metric", "cosine")
+        genres = request.GET.getlist("genres", None)
+        pg = request.GET.get("pg", None)
+        top_n = request.GET.get("top_n", 5)
     target_movie = Movie.objects.get(movie_id=movie_id)
     movie_title = target_movie.title
     synopsis_vec = pickle.loads(bytes.fromhex(target_movie.synopsis_vec))
     all_movies_with_vecs = Movie.objects.filter(synopsis_vec__isnull=False).exclude(movie_id=movie_id)
     top_scores = SortedList(key=lambda x: -x[0]) if metric == "cosine" else SortedList(key=lambda x: x[0])
+    # If the target movie's synopsis vector hasn't been computed yet, compute it and add it to the DB immediately.
     if synopsis_vec is None:
         synopsis = target_movie.synopsis
         if synopsis is None:
@@ -67,17 +78,32 @@ def recommend_item(request, movie_id: int = 0, metric: Literal["cosine", "euclid
         synopsis_vec = compute_synopsis_vec(synopsis)
         target_movie.synopsis_vec = synopsis_vec.dumps()
         target_movie.save()
+    # If an age rating has been provided for filtering, filter on that (first).
+    if pg:
+        exclusion_ids = set()
+        for movie in all_movies_with_vecs:
+            if not compare_age_rating(movie.age_rating, pg):
+                exclusion_ids.add(movie.movie_id)
+        all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
+    # If a list of genres has been provided for filtering, filter on those genres.
+    if genres:
+        for genre in genres:
+            all_movies_with_vecs = all_movies_with_vecs.filter(genres__icontains=genre)
+    # Compute scores for movies based on chosen similarity metric.
     for movie in all_movies_with_vecs:
         other_vec = pickle.loads(bytes.fromhex(movie.synopsis_vec))
         if metric == "cosine":
             similarity = round(1 - spatial.distance.cosine(synopsis_vec, other_vec), 4)
         else:
             similarity = round(spatial.distance.euclidean(synopsis_vec, other_vec), 4)
-        if top_scores.bisect_right((similarity, movie.movie_id)) < 5:
+        # We only care about keeping the first 5 entries so this is more memory efficient.
+        if top_scores.bisect_right((similarity, movie.movie_id)) < top_n:
             top_scores.add((similarity, movie.movie_id))
-    top_scores = top_scores[:5]
+    top_scores = top_scores[:top_n]
     recommended_movies = read_frame(
         Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])).set_index("movie_id")
+    # Multiply score by 5 to make it compatible with the stars in the frontend.
+    # This only really works with cosine similarity.
     recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * 5 for score, _ in top_scores]
     recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=4)
     return render(request, "recommendations.html",
