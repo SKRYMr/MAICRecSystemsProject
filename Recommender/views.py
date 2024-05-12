@@ -154,25 +154,19 @@ def search(request):
 
 
 def search_db(request):
-    con = sqlite3.connect("db.sqlite3")
-    cur = con.cursor()
-
+    # Columns to keep
     items = ["movie_id", "title", "poster"]
 
     search_term = request.GET["query"]
     offset = int(request.GET["offset"])
 
-    query = "SELECT movie_id, title, poster FROM Recommender_movie"
-
     if search_term:
-        query += f" WHERE title LIKE '%{search_term}%'"
+        movies = Movie.objects.filter(title__icontains=search_term)
+    else:
+        movies = Movie.objects.all()
 
-    query += f" LIMIT 50 OFFSET {offset}"
+    movies = movies[offset:offset + 50]
+    movies = read_frame(movies)
+    movies = movies[items]
 
-    results = cur.execute(query).fetchall()
-
-    cur.close()
-
-    data = [{k: v for k, v in zip(items, movie)} for movie in results]
-
-    return JsonResponse({"movies": data})
+    return JsonResponse({"movies": movies.to_dict('records')})
