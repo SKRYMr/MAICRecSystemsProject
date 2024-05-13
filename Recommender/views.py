@@ -8,9 +8,11 @@ from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.forms.models import model_to_dict
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
 from .models import User, Movie, Rating
+from .movie_rec_methods import tqdm_recommendations
 from typing import Literal, List
 
 
@@ -169,3 +171,25 @@ def search_db(request):
     movies = movies[items]
 
     return JsonResponse({"movies": movies.to_dict('records')})
+
+
+# For 5 different methods of recommendations
+# Add methods in movie_rec_methods.py
+def movie_recommendations(request):
+    if request.method == "POST":
+        movie_id = request.POST["movie_id"]
+
+        # Convert this to dict and add to context
+        target_movie = Movie.objects.get(movie_id=movie_id)
+
+        context = {
+            # "target_movie": "",
+            "recommendations": {
+                "TQDM Recommendations": tqdm_recommendations(movie_id)
+            }
+        }
+
+        return render(request, "movie_recommendations.html", context)
+    else:
+        context = {"error": f"Not a post request"}
+        return render(request, "error.html", context)

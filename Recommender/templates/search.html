@@ -13,6 +13,10 @@
     <p>Search</p>
 </div>
 
+<form id="form" action="{% url 'Recommender:movie_recommendations' %}" method="POST">
+    {% csrf_token %}
+</form>
+
 <div id="results">
 
 </div>
@@ -24,6 +28,7 @@
 </div>
 
 <script>
+    const csrftoken = "{{csrf_token}}";
     let currentDisplayedMovies = 0
 
     const search_btn = document.getElementById("search_btn")
@@ -85,18 +90,21 @@
         // Adding search result movies
         movies.forEach(movie => {
             const movieNode = document.createElement("div")
+            movieNode.onclick = async function(e) {
+                const form = document.getElementById('form');
+                const movieIdField = document.createElement('input');
+                movieIdField.setAttribute('type', 'hidden');
+                movieIdField.setAttribute('name', "movie_id");
+                movieIdField.setAttribute('value', movie.movie_id);
+                form.appendChild(movieIdField);
+                form.submit();
+            }
 
             const title = document.createElement("p")
             title.textContent = movie.title
 
             movieNode.appendChild(title)
-
-            const a = document.createElement("a")
-            // a.href = `` TODO: all link to rec page
-
-            a.appendChild(movieNode)
-
-            resultsDiv.appendChild(a)
+            resultsDiv.appendChild(movieNode)
         })
     }
 </script>
