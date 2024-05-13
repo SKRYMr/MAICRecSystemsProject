@@ -175,14 +175,21 @@ def search_db(request):
 
 # For 5 different methods of recommendations
 # Add methods in movie_rec_methods.py
-def movie_recommendations(request, movie_id: int):
-    target_movie = Movie.objects.get(movie_id=movie_id)
+def movie_recommendations(request):
+    if request.method == "POST":
+        movie_id = request.POST["movie_id"]
 
-    context = {
-        "target_movie": target_movie.values(),
-        "recommendations": {
-            "TQDM Recommendations": tqdm_recommendations(movie_id)
+        # Convert this to dict and add to context
+        target_movie = Movie.objects.get(movie_id=movie_id)
+
+        context = {
+            # "target_movie": "",
+            "recommendations": {
+                "TQDM Recommendations": tqdm_recommendations(movie_id)
+            }
         }
-    }
 
-    return render(request, "movie_recommendations.html", context)
+        return render(request, "movie_recommendations.html", context)
+    else:
+        context = {"error": f"Not a post request"}
+        return render(request, "error.html", context)

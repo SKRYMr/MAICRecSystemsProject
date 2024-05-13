@@ -14,5 +14,5 @@ urlpatterns = [
     path("search_db", views.search_db, name="search_db"),
     # change path to a better name
     # also change it in search.html
-    path("movierecommendations/<int:movie_id>", views.movie_recommendations, name="movie_recommendations")
+    path("movierecommendations", views.movie_recommendations, name="movie_recommendations")
 ]
