@@ -1,6 +1,5 @@
 import pandas as pd
 import pickle
-import sqlite3
 
 from scipy import spatial
 from sortedcontainers import SortedList
