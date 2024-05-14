@@ -55,14 +55,15 @@ def compute_synopsis_vec(text: str) -> Union[np.array, None]:
 
 def format_movie_recommendations(recommendations: pd.DataFrame, top_n: int = 0, round_to: int = 1) -> pd.DataFrame:
     recommendations["actors"] = recommendations["actors"].apply(
-        lambda x: x.replace("[", "").replace("(", "").replace("'", "").replace("]", "").replace(")", "").split(", ")
+        lambda x: x.replace("[", "").replace("(", "").replace("'", "").replace("]", "").replace(")", "").split(", ") if x else ""
     )
     recommendations["directors"] = recommendations["directors"].apply(
-        lambda x: x.replace("[", "").replace("(", "").replace("'", "").replace("]", "").replace(")", "").split(", ")
+        lambda x: x.replace("[", "").replace("(", "").replace("'", "").replace("]", "").replace(")", "").split(", ") if x else ""
     )
     recommendations["genres"] = recommendations["genres"].apply(
-        lambda x: x.replace("[", "").replace("]", "").replace("'", "").split(", "))
-    recommendations["poster"] = recommendations["poster"].apply(lambda x: Movie.get_base_url() + x)
+        lambda x: x.replace("[", "").replace("]", "").replace("'", "").split(", ") if x else ""
+    )
+    recommendations["poster"] = recommendations["poster"].apply(lambda x: Movie.get_base_url() + x if x else "")
     recommendations["rating"] = recommendations["rating"].apply(lambda x: round(x, round_to))
     return recommendations.head(top_n) if top_n > 0 else recommendations
 

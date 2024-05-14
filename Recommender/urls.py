@@ -5,8 +5,8 @@ app_name = "Recommender"
 urlpatterns = [
     path("", views.index, name="index"),
     path("recommend/user/", views.recommend_user, name="recommend_user"),
-    path("recommend/movie/<int:movie_id>/", views.recommend_item, name="recommend_item"),
-    path("recommend/movie/", views.recommend_item, name="recommend_item"),
+    path("recommend/movie/<int:movie_id>/", views.neighbours_recommend, name="neighbours_recommend"),
+    path("recommend/movie/", views.semantic_recommend, name="semantic_recommend"),
     path("compute_vecs/", views.compute_synopsis_vecs, name="compute_synopsis_vecs"),
     path("extract_data/drive/", views.extract_drive_data, name="extract_drive_data"),
 

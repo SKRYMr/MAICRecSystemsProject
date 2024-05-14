@@ -67,9 +67,10 @@
                                 <span>{{ genre }}</span>{% if not forloop.last %}, {% endif %}
                             {% endfor %}
                         </p>
+                    {% if recommendation.actors|length %}
                         <p class="card-text">
                             Actors:
-                            {% for actor in recommendation.actors %}
+                            {% for actor in recommendation.actors|slice:":10" %} <!-- Limit to the first 5 actors -->
                             <!-- The actors list is in the form: "Characted played", "Actor", .. 
                                  Therefore only print the actors name, and skip fictional characters.-->
                                 {% if forloop.counter|divisibleby:2 %}
@@ -77,9 +78,12 @@
                                 {% endif %}
                             {% endfor %}
                         </p>
+                    {% endif %}
                         <p class="card-text">Directors: {{ recommendation.directors|join:", " }}</p>
                         <p class="card-text">{{ metric|title }}: {{ recommendation.rating }}</p>
-
+                        {% if recommendation.ratings_count %}
+                        <p class="card-text">Ratings Count: {{ recommendation.ratings_count|floatformat:0 }}</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>

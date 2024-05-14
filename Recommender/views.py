@@ -6,9 +6,10 @@ from sortedcontainers import SortedList
 from django_pandas.io import read_frame
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
+from django.db.models import Avg, Count, QuerySet
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.forms.models import model_to_dict
+from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
 from .models import User, Movie, Rating
@@ -43,15 +44,26 @@ def compute_synopsis_vecs(request):
 @transaction.atomic
 def extract_drive_data(request):
     total, created, updated = extract_data(GOOGLE_DRIVE_ROOT)
-    print(f"Total: {total}, Created: {created}, Updated: {updated}")
     return render(request, "success.html", {"context": {"total": total, "created": created, "updated": updated}})
 
 
-def recommend_item(request, movie_id: int = 0,
-                   metric: Literal["cosine", "euclidean"] = "cosine",
-                   genres: List[str] = None,
-                   pg: str = None,
-                   top_n: int = 5):
+def semantic_recommend(request, movie_id: int = 0,
+                       metric: Literal["cosine", "euclidean"] = "cosine",
+                       genres: List[str] = None,
+                       pg: str = None,
+                       top_n: int = 5):
+    """
+    Provides a list of movie recommendations based on semantic similarity between the movies synopsis' descriptions.
+    :param request: The Django request object.
+    :param movie_id: The movie ID to get recommendations for.
+    :param metric: The similarity metric to use, options are "cosine" or "euclidean". Cosine is recommended.
+    :param genres: A list of genres to filter on to make recommendations more focused.
+    :param pg: The minimum PG rating to filter recommendations on.
+    This avoids situations like recommending horror movies about possessed toys
+    when looking for recommendations for Toy Story, for example. Strongly recommended.
+    Options are: "G", "PG", "PG-13", "R", "NC-17"
+    :param top_n: The number of recommendations to return.
+    """
     if request.method == "POST":
         try:
             movie_id = request.POST.get("movie_id")
@@ -102,16 +114,60 @@ def recommend_item(request, movie_id: int = 0,
             top_scores.add((similarity, movie.movie_id))
     top_scores = top_scores[:top_n]
     recommended_movies = read_frame(
-        Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])).set_index("movie_id")
+        Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])
+    ).set_index("movie_id")
     # Multiply score by 5 to make it compatible with the stars in the frontend.
     # This only really works with cosine similarity.
     recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * 5 for score, _ in top_scores]
-    recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=4)
+    recommended_movies = format_movie_recommendations(
+        recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=4
+    )
     return render(request, "recommendations.html",
                   {"recommendations": recommended_movies.to_dict("records"),
                    "movie_id": movie_id,
                    "movie_title": movie_title,
                    "metric": "similarity"})
+
+
+def neighbours_recommend(request, movie_id: int, top_n: int = 5):
+    """
+    Given a movie, recommends a list of movies based on the average ratings of users that have rated the target movie
+    5 stars, or 4 if not enough 5-star ratings exist and so on.
+    :param request: The Django request object.
+    :param movie_id: The movie ID to get recommendations for.
+    :param top_n: The number of recommendations to return.
+    """
+    target_movie = Movie.objects.get(movie_id=movie_id)
+    movie_title = target_movie.title
+    best_star_ratings = None
+    for val in sorted(list(Rating.RATINGS.keys()), reverse=True):
+        best_star_ratings = best_star_ratings.union(Rating.objects.filter(movie_id=movie_id, rating=val)) \
+            if best_star_ratings else Rating.objects.filter(movie_id=movie_id, rating=val)
+        if best_star_ratings.count() >= BEST_STAR_RATINGS:
+            break
+    else:
+        return render(request, "error.html", {"error": "Not enough ratings available for movie."})
+    neighbours = best_star_ratings.values_list("user_id", flat=True)
+    neighbours_ratings = Rating.objects.filter(user_id__in=neighbours).exclude(movie_id=movie_id)
+    minimum_ratings = int(neighbours.count() * MINIMUM_RATINGS_PERCENT)
+    neighbours_ratings = (neighbours_ratings.values("movie_id")
+                          .annotate(avg_rating=Avg("rating"),
+                                    ratings_count=Count("movie_id"))
+                          .filter(ratings_count__gte=minimum_ratings).order_by("-avg_rating"))
+    movie_ids = [movie["movie_id"] for movie in neighbours_ratings]
+    movie_ratings = [movie["avg_rating"] for movie in neighbours_ratings]
+    movie_ratings_count = [movie["ratings_count"] for movie in neighbours_ratings]
+    recommended_movies = read_frame(
+        Movie.objects.filter(movie_id__in=movie_ids)).set_index("movie_id")
+    recommended_movies.loc[movie_ids, "rating"] = movie_ratings
+    recommended_movies.loc[movie_ids, "ratings_count"] = movie_ratings_count
+    recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False),
+                                                      round_to=2, top_n=top_n)
+    return render(request, "recommendations.html",
+                  {"movie_id": movie_id,
+                   "recommendations": recommended_movies.to_dict("records"),
+                   "movie_title": movie_title,
+                   "metric": "Average Rating"})
 
 
 def recommend_user(request):

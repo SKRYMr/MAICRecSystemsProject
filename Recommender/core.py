@@ -7,6 +7,14 @@ from typing import Tuple, Literal
 TIME_FUNCS = False
 NEIGHBOURHOOD_SIZE = 50
 MINIMUM_COMMON_RATINGS = 5
+# How many highest-value ratings (i.e. how many users) we need
+# to get recommendations for a movie based on users' average ratings.
+# See views.recommend_neighbours
+BEST_STAR_RATINGS = 5
+# What percentage of target movie's best raters must have rated another movie
+# for that movie to be included in recommendations.
+# See views.recommend_neighbours
+MINIMUM_RATINGS_PERCENT = 0.15
 
 RATINGS_DAT_FILE = "./data/ratings.dat"
 MOVIES_DAT_FILE = "./data/movies.dat"
@@ -85,7 +93,9 @@ def find_k_nearest(user_id: int, users: set, ratings: pd.DataFrame, k: int, mini
     return users, similarities
 
 
-def get_top_movies(user_id: int, neighbours: list, ratings: pd.DataFrame, movies: pd.DataFrame, similarities: pd.DataFrame = {}, minimum_ratings: int = 5, metric: Literal["neighbours_average", "bias_correction"] = "neighbours_average") -> pd.DataFrame:
+def get_top_movies(user_id: int, neighbours: list, ratings: pd.DataFrame, movies: pd.DataFrame, similarities: dict = {},
+                   minimum_ratings: int = 5,
+                   metric: Literal["neighbours_average", "bias_correction"] = "neighbours_average") -> pd.DataFrame:
     s = time.time() if TIME_FUNCS else 0
     user_ratings = ratings[ratings["user_id"] == user_id]
     neighbours_ratings = ratings[ratings.user_id.isin(neighbours)]
