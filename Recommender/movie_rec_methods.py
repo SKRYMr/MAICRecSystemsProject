@@ -26,59 +26,66 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
     :param year_proximity: The range of years from the reference movie to get recommendations for.
     :param top_n: The number of recommendations to return.
     """
+    # get required target movie characteristics
     target_movie = Movie.objects.get(movie_id=movie_id)
     movie_year = target_movie.release_year
+    # convert string to python list
     genres = ast.literal_eval(target_movie.genres)
     n_movie_genres = len(genres)
-    print(genres)
 
+    #exclude the target movie from recommendations
     all_movies = Movie.objects.exclude(movie_id=movie_id)
 
     if parental_control:
+        # Do not include movies of higher age_ratings (except PG if the movie is G)
         if target_movie.age_rating in ["G","PG"]:
             all_movies = all_movies.filter(age_rating__in=["G","PG"])
         elif target_movie.age_rating == "PG-13":
             all_movies = all_movies.filter(age_rating__in=["G","PG","PG-13"])
-
+    # filter based on release date close to target movie
     close_years_movies = all_movies.filter(release_year__gte=movie_year-year_proximity, release_year__lte=movie_year+year_proximity)
-
+    # convert to pandas dataframe
     close_years_movies_df = read_frame(close_years_movies)
-
+    # compute the popularity of the movies
     close_years_movies_df['rating'] = close_years_movies_df['avg_ratings'] * (
                 close_years_movies_df.num_ratings / close_years_movies_df.num_ratings.max())
-
+    #include only first 600 most popular movies if there are more suitable
     if close_years_movies_df.shape[0] > 600:
         chosen_movies_genre_df = close_years_movies_df.sort_values("rating", ascending=False)[:600]
     else:
         chosen_movies_genre_df = close_years_movies_df
-    print(chosen_movies_genre_df)
 
+    # Compute genre similarity
     chosen_movies_genre_df["genre_similarity"] = chosen_movies_genre_df["genres"].apply(lambda x:compute_similarity(x,genres,n_movie_genres))
     gsim_column = chosen_movies_genre_df["genre_similarity"]
+    # Fill the empty rows with mean genre similarity
     chosen_movies_genre_df["genre_similarity"]= gsim_column.fillna(gsim_column.mean())
-    print(chosen_movies_genre_df.genre_similarity)
+
     if type == "keyword":
         print("keyword recommendations")
+        # convert string to python list
         keywords = ast.literal_eval(target_movie.tmdb_keywords)
         n_keywords = len(keywords)
+        # similar to genre similarity computation
         chosen_movies_genre_df["keyword_similarity"] = chosen_movies_genre_df["tmdb_keywords"].apply(
             lambda x: compute_similarity(x, keywords, n_keywords))
         ksim_column = chosen_movies_genre_df["keyword_similarity"]
         chosen_movies_genre_df["keyword_similarity"] = ksim_column.fillna(ksim_column.mean())
-
+        # combine genre and actors similarity
         chosen_movies_genre_df["rating"] = chosen_movies_genre_df["keyword_similarity"] * chosen_movies_genre_df["genre_similarity"]
 
     elif type == "actors":
         print("actors recommendations")
+        # convert string to python list
         actors = ast.literal_eval(target_movie.actors)
         n_actors = len(actors)
+        # similar to other similarity computation
         chosen_movies_genre_df["actors_similarity"] = chosen_movies_genre_df["actors"].apply(
             lambda x: compute_similarity_actors(x, actors))
         asim_column = chosen_movies_genre_df["actors_similarity"]
         chosen_movies_genre_df["actors_similarity"] = asim_column.fillna(asim_column.mean())
-
+        # combine genre and actors similarity
         chosen_movies_genre_df["rating"] = chosen_movies_genre_df["actors_similarity"] * chosen_movies_genre_df["genre_similarity"]
-        print(chosen_movies_genre_df.title[chosen_movies_genre_df["actors_similarity"] == chosen_movies_genre_df["actors_similarity"].max()])
 
     recommended_movies = format_movie_recommendations(chosen_movies_genre_df.sort_values("rating", ascending=False),round_to=2, top_n=top_n)
     return recommended_movies.to_dict("records")
