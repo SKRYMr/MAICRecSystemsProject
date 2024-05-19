@@ -13,7 +13,7 @@ from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
 from .models import User, Movie, Rating
-from .movie_rec_methods import tqdm_recommendations
+from .movie_rec_methods import tqdm_recommendations,year_genre_recommend
 from typing import Literal, List
 
 
@@ -241,7 +241,9 @@ def movie_recommendations(request):
         context = {
             # "target_movie": "",
             "recommendations": {
-                "TQDM Recommendations": tqdm_recommendations(movie_id)
+                "TQDM Recommendations": tqdm_recommendations(movie_id),
+                "ygk Recommendations": year_genre_recommend(movie_id, type="keyword"),
+                "yga Recommendations": year_genre_recommend(movie_id, type="actors")
             }
         }
 

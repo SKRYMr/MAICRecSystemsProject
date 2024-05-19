@@ -3,9 +3,11 @@ import pandas as pd
 import random
 from enum import Enum
 from typing import Set, Literal, Union
+import ast
+
 
 from .core import find_k_nearest, get_top_movies, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
-from .parse import preprocess_pipeline, clean_pipeline, ft
+from .parse import preprocess_pipeline, clean_pipeline #, ft
 from .models import Movie
 from RecSystems5.settings import DEBUG
 
@@ -83,3 +85,38 @@ def compare_age_rating(age_rating: str, target_rating: str):
         print(f"Target Rating: {target_rating}")
         return False
     return age_rating <= target_rating
+
+
+def compute_similarity(x,reference,r_len):
+    if pd.isna(x):
+        return None
+
+    try:
+        x = ast.literal_eval(x)
+    except ValueError:
+        return None
+
+    val = (2 * len(set(x).intersection(reference))) / (r_len + len(x))
+    #print(set(x).intersection(reference))
+    return val
+
+
+def compute_similarity_actors(x,reference):
+    result = 0
+    if pd.isna(x):
+        return None
+
+    try:
+        x = ast.literal_eval(x)
+    except ValueError:
+        return None
+
+    actors_overlap = len(set(x).intersection(reference))
+    #print(set(x).intersection(reference))
+    #print(actors_overlap)
+    if actors_overlap == 0:
+        result = 0.05
+    else:
+        result = actors_overlap / 10
+    return result
+
