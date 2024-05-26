@@ -98,3 +98,23 @@ body {
   .error-msg{
     font-size: 20px;
   }
+
+  .results-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    margin-top: 20px;
+    padding: 10px;
+    color: white;
+}
+
+.movie-item {
+    cursor: pointer;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    color: white;
+}
+
+.movie-item:hover {
+    background-color: #f1f1f1;
+}

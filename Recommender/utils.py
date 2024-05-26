@@ -83,3 +83,23 @@ def compare_age_rating(age_rating: str, target_rating: str):
         print(f"Target Rating: {target_rating}")
         return False
     return age_rating <= target_rating
+
+
+def format_gpt_response(content:str) -> dict:
+    #get the last 20 lines which is hopefuly the recommendations
+    movie_lines = content.split("\n")[-20:]
+
+    #extract movie titles from each line, get rid of the number.
+    movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines]
+    #check if the movie is present in the dataset
+    for movie_title in movie_titles:
+        target_movie = Movie.objects.filter(title=movie_title)
+        if target_movie:
+            movie_title.replace("'","")
+            movie_title.replace('"',"")
+            
+            continue
+        else:
+            movie_titles.remove(movie_title)
+            
+    return movie_titles

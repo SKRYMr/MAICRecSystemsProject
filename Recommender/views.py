@@ -13,12 +13,12 @@ from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
 from .models import User, Movie, Rating
-from .movie_rec_methods import tqdm_recommendations
+from .movie_rec_methods import tqdm_recommendations, gpt_recommendations
 from typing import Literal, List
 
 
 def index(request):
-    return render(request, "index.html")
+    return render(request, "search.html")
 
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -237,11 +237,16 @@ def movie_recommendations(request):
 
         # Convert this to dict and add to context
         target_movie = Movie.objects.get(movie_id=movie_id)
+        target_movie_dict = {
+            "title": target_movie.title,
+            # We can add more data if we want to I guess? but title should be sufficient.
+        }
 
         context = {
-            # "target_movie": "",
+            "target_movie": target_movie_dict,
             "recommendations": {
-                "TQDM Recommendations": tqdm_recommendations(movie_id)
+                "TQDM Recommendations": tqdm_recommendations(movie_id),
+                "ChatGPT Recommendations": gpt_recommendations(movie_id),
             }
         }
 
