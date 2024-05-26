@@ -11,8 +11,6 @@ from django.db.models import Avg, Count
 from typing import Literal, List
 from sortedcontainers import SortedList
 from scipy import spatial
-# Added this key so that everyone can try if they want to!
-CHATGPT_API_KEY = "sk-proj-5ikdLPGp3IxFMm5AeStnT3BlbkFJjEKIoigSofkQTzeSp7gQ"
 
 def tqdm_recommendations(movie_id: int):
     target_movie = Movie.objects.get(movie_id=movie_id)
