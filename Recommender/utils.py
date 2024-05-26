@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from django_pandas.io import read_frame
 import random
 from enum import Enum
 from typing import Set, Literal, Union
@@ -66,7 +67,8 @@ def format_movie_recommendations(recommendations: pd.DataFrame, top_n: int = 0, 
         lambda x: x.replace("[", "").replace("]", "").replace("'", "").split(", ") if x else ""
     )
     recommendations["poster"] = recommendations["poster"].apply(lambda x: Movie.get_base_url() + x if x else "")
-    recommendations["rating"] = recommendations["rating"].apply(lambda x: round(x, round_to))
+    if "rating" in recommendations.columns:
+        recommendations["rating"] = recommendations["rating"].apply(lambda x: round(x, round_to))
     return recommendations.head(top_n) if top_n > 0 else recommendations
 
 
@@ -88,22 +90,19 @@ def compare_age_rating(age_rating: str, target_rating: str):
 
 def format_gpt_response(content:str) -> dict:
     #get the last 20 lines which is hopefuly the recommendations
-    movie_lines = content.split("\n")[-20:]
+    movie_lines = content.split("\n")[-10:]
 
     #extract movie titles from each line, get rid of the number.
-    movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines]
-    #check if the movie is present in the dataset
-    for movie_title in movie_titles:
-        target_movie = Movie.objects.filter(title=movie_title)
-        if target_movie:
-            movie_title.replace("'","")
-            movie_title.replace('"',"")
-            
-            continue
-        else:
-            movie_titles.remove(movie_title)
-            
-    return movie_titles
+    #movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines]
+    movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines if '. ' in line]
+
+    # Filter out movies not present in the dataset and get their queryset
+    movie_queryset = Movie.objects.filter(title__in=movie_titles)
+
+    # Convert the queryset to a DataFrame
+    df_movies = read_frame(movie_queryset)
+
+    return df_movies
 
 def compute_similarity(x,reference,r_len):
     if pd.isna(x):
