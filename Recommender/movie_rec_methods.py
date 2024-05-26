@@ -12,6 +12,7 @@ from typing import Literal, List
 from sortedcontainers import SortedList
 from scipy import spatial
 
+
 def tqdm_recommendations(movie_id: int):
     target_movie = Movie.objects.get(movie_id=movie_id)
     rec_ids = target_movie.tmdb_recommendations.replace("]", "").replace("[", "").split(", ")
