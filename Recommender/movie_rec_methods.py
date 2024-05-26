@@ -17,9 +17,10 @@ def tqdm_recommendations(movie_id: int):
     target_movie = Movie.objects.get(movie_id=movie_id)
     rec_ids = target_movie.tmdb_recommendations.replace("]", "").replace("[", "").split(", ")
     rec_ids = [int(i) for i in rec_ids]
-    rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)[:5]
+    rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)
     df_movies = read_frame(rec_movies)
-    return df_movies.to_dict("records")
+    recommendations = format_movie_recommendations(df_movies, top_n=5)
+    return recommendations.to_dict("records")
 
 
 def gpt_recommendations(movie_id: int,top_n: int = 5):
