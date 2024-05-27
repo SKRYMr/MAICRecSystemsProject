@@ -1,11 +1,13 @@
 import json
 import os
+import pandas as pd
 import requests
 from datetime import datetime
 from typing import List, Dict, Tuple
 from .models import Movie
 
 GOOGLE_DRIVE_ROOT = os.path.join(os.getcwd(), "extracted_content_ml-latest")
+POSTERS_CSV_PATH = os.path.join(os.getcwd(), "Recommender", "data", "metadata_filtered.csv")
 API_KEY = "347f057cc85997cb119a516c59c66063"
 DATETIME_FORMAT = "%Y-%m-%d"
 
@@ -162,3 +164,12 @@ def extract_data(root: str) -> Tuple[int, int, int]:
 
     return len(files), updated, created
 
+
+def extract_posters(filepath: str):
+    df = pd.read_csv(filepath)
+    total = len(df)
+    count = 0
+    for index, row in df.iterrows():
+        Movie.objects.filter(movie_id=row["movie_id"]).update(poster=row["poster"])
+        count += 1
+    return total, count

@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render
-from .extract_data import extract_data, GOOGLE_DRIVE_ROOT
+from .extract_data import extract_data, GOOGLE_DRIVE_ROOT, extract_posters, POSTERS_CSV_PATH
 from .models import User, Movie, Rating
 
 from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
@@ -41,6 +41,13 @@ def compute_synopsis_vecs(request):
 def extract_drive_data(request):
     total, created, updated = extract_data(GOOGLE_DRIVE_ROOT)
     return render(request, "success.html", {"context": {"total": total, "created": created, "updated": updated}})
+
+
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def extract_kaggle_posters(request):
+    total, updated = extract_posters(POSTERS_CSV_PATH)
+    return render(request, "success.html", {"context": {"total": total, "updated": updated}})
 
 
 def recommend_user(request):
