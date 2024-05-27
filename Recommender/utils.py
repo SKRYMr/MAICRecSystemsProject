@@ -8,7 +8,7 @@ import ast
 
 
 from .core import find_k_nearest, get_top_movies, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
-from .parse import preprocess_pipeline, clean_pipeline #, ft
+from .parse import preprocess_pipeline, clean_pipeline, vectorize
 from .models import Movie
 from RecSystems5.settings import DEBUG
 
@@ -49,10 +49,7 @@ def get_movies_recommendations(user_id: int, users: Set[int], ratings: pd.DataFr
 
 def compute_synopsis_vec(text: str) -> Union[np.array, None]:
     preprocessed_text = preprocess_pipeline(clean_pipeline(text))
-    vec = [ft[word] for word in preprocessed_text.split()]
-    vec = np.mean(vec, axis=0)
-    if np.any(np.isnan(vec)):
-        vec = None
+    vec = vectorize(preprocessed_text)
     return vec
 
 
@@ -88,6 +85,7 @@ def compare_age_rating(age_rating: str, target_rating: str):
         return False
     return age_rating <= target_rating
 
+
 def format_gpt_response(content:str) -> dict:
     #get the last 20 lines which is hopefuly the recommendations
     movie_lines = content.split("\n")[-10:]
@@ -104,7 +102,8 @@ def format_gpt_response(content:str) -> dict:
 
     return df_movies
 
-def compute_similarity(x,reference,r_len):
+
+def compute_similarity(x, reference, r_len):
     if pd.isna(x):
         return None
 
