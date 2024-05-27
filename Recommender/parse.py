@@ -1,15 +1,35 @@
 import fasttext
+import numpy as np
 import re
 from .apps import RecommenderConfig as config
 from nltk.corpus import stopwords, names
 from nltk.tokenize import word_tokenize
+from typing import Union
 
 # Remove common english stopwords and also names.
 # Having names in the vectors make it so that movies with similarly-named protagonists
 # get recommended together.
 stopwords = set(stopwords.words("english")).union(set(names.words()))
 
-ft = fasttext.load_model(config.FASTTEXT_MODEL_FILE)
+
+# Do not initialize the model until the first model call for memory constraints.
+# Using Singletons to guarantee that the model is only initialized once.
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class FastText(metaclass=Singleton):
+
+    def __init__(self):
+        self.model = fasttext.load_model(config.FASTTEXT_MODEL_FILE)
+
+    def __getitem__(self, item):
+        return self.model[item]
 
 
 def rm_link(text):
@@ -90,3 +110,12 @@ def preprocess_pipeline(text):
     tokens = tokenize(text)
     no_stopwords = rm_stopwords(tokens)
     return " ".join(no_stopwords)
+
+
+def vectorize(text: str) -> Union[np.array, None]:
+    ft = FastText()
+    vec = [ft[word] for word in text.split()]
+    vec = np.mean(vec, axis=0)
+    if np.any(np.isnan(vec)):
+        vec = None
+    return vec

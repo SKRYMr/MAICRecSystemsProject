@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Dict, Tuple
 from .models import Movie
 
-GOOGLE_DRIVE_ROOT = ".\extracted_content_ml-latest"
+GOOGLE_DRIVE_ROOT = os.path.join(os.getcwd(), "extracted_content_ml-latest")
 API_KEY = "347f057cc85997cb119a516c59c66063"
 DATETIME_FORMAT = "%Y-%m-%d"
 

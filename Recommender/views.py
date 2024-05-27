@@ -48,6 +48,7 @@ def extract_drive_data(request):
     total, created, updated = extract_data(GOOGLE_DRIVE_ROOT)
     return render(request, "success.html", {"context": {"total": total, "created": created, "updated": updated}})
 
+
 def recommend_user(request):
     users = set(User.objects.values_list("user_id", flat=True))
     movies = read_frame(Movie.objects.all())
@@ -128,7 +129,7 @@ def movie_recommendations(request):
                 "ygk Recommendations": year_genre_recommend(movie_id, type="keyword"),
                 "yga Recommendations": year_genre_recommend(movie_id, type="actors"),
                 "neighbourhood_recommendations": neighbours_recommend(movie_id),
-                "semmantic_recommend": semantic_recommend(request, movie_id)
+                "semantic_recommend": semantic_recommend(request, movie_id)
                 
             }
         }
