@@ -15,6 +15,8 @@ BEST_STAR_RATINGS = 5
 # for that movie to be included in recommendations.
 # See views.recommend_neighbours
 MINIMUM_RATINGS_PERCENT = 0.15
+# Parameter to make bigger queries compatible with lower versions of sqlite3.
+MAX_IDS_PER_EXCLUSION = 1000
 
 RATINGS_DAT_FILE = "./data/ratings.dat"
 MOVIES_DAT_FILE = "./data/movies.dat"

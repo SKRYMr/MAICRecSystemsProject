@@ -5,7 +5,7 @@ import pandas as pd
 import ast
 from .utils import (format_movie_recommendations, compute_similarity, compute_similarity_actors,
                     compare_age_rating, compute_synopsis_vec, SAFE_AGE_RATING)
-from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT
+from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT, MAX_IDS_PER_EXCLUSION
 from .models import Movie, Rating
 from django.db.models import Avg, Count
 from typing import Literal, List
@@ -219,6 +219,10 @@ def semantic_recommend(movie_id: int = 0,
         for movie in all_movies_with_vecs:
             if not compare_age_rating(movie.age_rating, pg):
                 exclusion_ids.add(movie.movie_id)
+            if len(exclusion_ids) > MAX_IDS_PER_EXCLUSION:
+                all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
+                _ = all_movies_with_vecs.exists()
+                exclusion_ids = set()
         all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
     # If a list of genres has been provided for filtering, filter on those genres.
     if genres:
