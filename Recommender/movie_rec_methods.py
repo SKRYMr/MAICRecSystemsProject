@@ -20,7 +20,6 @@ def tqdm_recommendations(movie_id: int):
     rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)
     df_movies = read_frame(rec_movies)
     recommendations = format_movie_recommendations(df_movies, top_n=5)
-    print(recommendations.columns)
     return recommendations.to_dict("records")
 
 
@@ -54,7 +53,7 @@ def gpt_recommendations(movie_id: int, top_n: int = 5):
 
     # Extract the recommendations from the response
     recommendations = response.choices[0].message.content
-    # Get the last 20 lines which is hopefuly the recommendations
+    # Get the last 20 lines which is hopefully the recommendations
     movie_lines = recommendations.split("\n")[-10:]
 
     # Extract movie titles from each line, get rid of the number, quotations etc
@@ -162,6 +161,7 @@ def neighbours_recommend(movie_id: int, top_n: int = 5):
             break
     else:
         # TODO: DONT FORGET TO CHANGE FILIP
+        print("Not enough ratings available for target movie.")
         return #render(request, "error.html", {"error": "Not enough ratings available for movie."})
     neighbours = best_star_ratings.values_list("user_id", flat=True)
     neighbours_ratings = Rating.objects.filter(user_id__in=neighbours).exclude(movie_id=movie_id)
@@ -242,6 +242,6 @@ def semantic_recommend(movie_id: int = 0,
     # This only really works with cosine similarity.
     recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * 5 for score, _ in top_scores]
     recommended_movies = format_movie_recommendations(
-        recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=4
+        recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=2
     )
     return recommended_movies.to_dict("records")
