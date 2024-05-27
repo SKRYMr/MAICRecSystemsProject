@@ -126,10 +126,10 @@ def movie_recommendations(request):
             "recommendations": {
                 "TQDM Recommendations": tqdm_recommendations(movie_id),
                 "ChatGPT Recommendations": gpt_recommendations(movie_id),
-                "ygk Recommendations": year_genre_recommend(movie_id, type="keyword"),
-                "yga Recommendations": year_genre_recommend(movie_id, type="actors"),
-                "neighbourhood_recommendations": neighbours_recommend(movie_id),
-                "semantic_recommend": semantic_recommend(request, movie_id)
+                "Year-Genre-Keywords Recommendations": year_genre_recommend(movie_id, type="keyword"),
+                "Year-Genre-Actor Recommendations": year_genre_recommend(movie_id, type="actors"),
+                "Neighbourhood Recommendations": neighbours_recommend(movie_id),
+                "Semantic Similarity Recommendations": semantic_recommend(request, movie_id)
                 
             }
         }

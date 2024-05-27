@@ -20,6 +20,7 @@ def tqdm_recommendations(movie_id: int):
     rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)
     df_movies = read_frame(rec_movies)
     recommendations = format_movie_recommendations(df_movies, top_n=5)
+    print(recommendations.columns)
     return recommendations.to_dict("records")
 
 
@@ -145,6 +146,7 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
         chosen_movies_genre_df["rating"] = chosen_movies_genre_df["actors_similarity"] * chosen_movies_genre_df["genre_similarity"]
 
     recommended_movies = format_movie_recommendations(chosen_movies_genre_df.sort_values("rating", ascending=False),round_to=2, top_n=top_n)
+    print(recommended_movies.columns)
     return recommended_movies.to_dict("records")
 
 

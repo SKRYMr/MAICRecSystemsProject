@@ -16,7 +16,7 @@
         <div class="container mt-4">
             <div class="row align-items-center gap-3">
                 <div class="col-12 header-text text-center">
-                        <h1 class="line jersey-15-regular">Amazing Movie Recommendations for movie {{target_movie.title}}</h1>
+                        <h1 class="line jersey-15-regular">Recommendations for movie - <span style="color:#affac3">{{target_movie.title}}</span></h1>
                 </div>
             </div>
         </div>
@@ -29,6 +29,7 @@
                     {% for method, movies in recommendations.items %}
                         <option value="{{ method }}">{{ method }}</option>
                     {% endfor %}
+                    <option value="all">Show All</option>
                 </select>
             </div>
         </div>
@@ -37,8 +38,8 @@
         <!-- Container for displaying recommendations -->
         
         {% for method, movies in recommendations.items %}
-            <div id="recommendations-{{ method }}" style="display: none;">
-                <h3 style="color:white">Showing movie recommendations bases on the method: {{ method }}</h3>
+            <div id="recommendations-{{ method }}" class="recommendations-container" style="display: none;">
+                <h3 style="color:white" class="line">Function: {{ method }}</h3>
                 {% for movie in movies %}
                 <div class="container mt-4 text-wrap">
                     <div class="row mb-3 movie-row">
@@ -125,11 +126,18 @@
             recommendationContainers.forEach(function(container) {
                 container.style.display = "none";
             });
-
-            // Show the selected recommendation container
-            var selectedRecommendationContainer = document.getElementById("recommendations-" + selectedMethod);
-            if (selectedRecommendationContainer) {
-                selectedRecommendationContainer.style.display = "block";
+            
+            if (selectedMethod === "all") {
+                // Show all recommendation containers
+                recommendationContainers.forEach(function(container) {
+                    container.style.display = "block";
+                });
+            } else {
+                // Show the selected recommendation container
+                var selectedRecommendationContainer = document.getElementById("recommendations-" + selectedMethod);
+                if (selectedRecommendationContainer) {
+                    selectedRecommendationContainer.style.display = "block";
+                }
             }
         }
 
@@ -138,6 +146,11 @@
 
         // Call the function initially to display recommendations based on the initial selection
         handleMethodChange();
+
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
     </script>
 </body>
 </html>
