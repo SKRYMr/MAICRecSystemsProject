@@ -79,7 +79,7 @@ def year_genre_recommend(movie_id: int, type: str = "keyword",
     Given a movie, recommends a list of movies based on similar release_year, popularity, genre count and the final
     criterion which is specified in the parameter "type".
     :param movie_id: The movie ID to get recommendations for.
-    :param type: Final parameter to consider in the recommendation. Can be one of: "keyword", "actors", "popularity"
+    :param type: Final parameter to consider in the recommendation. Can be one either "keyword" or "actors".
     :param parental_control: Toggles a filter to not recommend movies for adult audiences if the target movie is for children
     :param year_proximity: The range of years from the reference movie to get recommendations for.
     :param top_n: The number of recommendations to return.
