@@ -10,6 +10,7 @@ import ast
 from .core import find_k_nearest, get_top_movies, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
 from .parse import preprocess_pipeline, clean_pipeline, vectorize
 from .models import Movie
+from django.template.defaulttags import register
 from RecSystems5.settings import DEBUG
 
 POSITIVE_RATING_THRESHOLD = 3
@@ -37,7 +38,7 @@ AgeRatingsDict = {"G": 1,
 AgeRating = Enum("AgeRating", AgeRatingsDict)
 # This is used to determine whether it's safe to recommend a movie that doesn't have a record for the age rating.
 # If the requested age rating is higher than this value, then the movie will be recommended regardless.
-SAFE_AGE_RATING = AgeRating["PG-13"].value
+SAFE_AGE_RATING = AgeRating["PG-13"]
 
 
 def get_movies_recommendations(user_id: int, users: Set[int], ratings: pd.DataFrame, movies: pd.DataFrame,
@@ -69,9 +70,9 @@ def format_movie_recommendations(recommendations: pd.DataFrame, top_n: int = 0, 
     return recommendations.head(top_n) if top_n > 0 else recommendations
 
 
-def compare_age_rating(age_rating: str, target_rating: str):
+def compare_age_rating(age_rating: str, target_rating: str) -> bool:
     target_rating = AgeRating[target_rating.upper()].value
-    if (not age_rating or age_rating not in AgeRatingsDict) and target_rating <= SAFE_AGE_RATING:
+    if (not age_rating or age_rating not in AgeRatingsDict) and target_rating <= SAFE_AGE_RATING.value:
         return False
     elif not age_rating or age_rating not in AgeRatingsDict:
         return True
@@ -86,7 +87,7 @@ def compare_age_rating(age_rating: str, target_rating: str):
     return age_rating <= target_rating
 
 
-def format_gpt_response(content:str) -> dict:
+def format_gpt_response(content: str) -> dict:
     #get the last 20 lines which is hopefuly the recommendations
     movie_lines = content.split("\n")[-10:]
 
@@ -136,3 +137,7 @@ def compute_similarity_actors(x,reference):
         result = actors_overlap / 10
     return result
 
+
+@register.filter
+def getitem(dictionary, key):
+    return dictionary.get(key)

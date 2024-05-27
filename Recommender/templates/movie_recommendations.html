@@ -95,8 +95,8 @@
                                     </p>
                                 {% endif %}
                                     <p class="card-text">Directors: {{ movie.directors|join:", " }}</p>
-                                    {%if movie.rating%}
-                                    <p class="card-text">{{ metric|title }}: {{ movie.rating }}</p>
+                                    {% if movie.rating %}
+                                    <p class="card-text">{{ metrics|getitem:method|title }}: {{ movie.rating }}</p>
                                     {% endif %}
                                     {% if movie.ratings_count %}
                                     <p class="card-text">Ratings Count: {{ movie.ratings_count|floatformat:0 }}</p>

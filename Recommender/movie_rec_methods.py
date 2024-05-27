@@ -1,12 +1,12 @@
 from django_pandas.io import read_frame
 import openai
 import pickle
-import random
 import pandas as pd
 import ast
-from .utils import format_movie_recommendations, compute_similarity, compute_similarity_actors, format_gpt_response, compare_age_rating, compute_synopsis_vec
+from .utils import (format_movie_recommendations, compute_similarity, compute_similarity_actors,
+                    compare_age_rating, compute_synopsis_vec, SAFE_AGE_RATING)
 from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT
-from .models import  Movie, Rating
+from .models import Movie, Rating
 from django.db.models import Avg, Count
 from typing import Literal, List
 from sortedcontainers import SortedList
@@ -24,7 +24,7 @@ def tqdm_recommendations(movie_id: int):
     return recommendations.to_dict("records")
 
 
-def gpt_recommendations(movie_id: int,top_n: int = 5):
+def gpt_recommendations(movie_id: int, top_n: int = 5):
     """
     ChatGPT recommendations
     Given a movie, recommends a list of movies based on recommendations from chatGPT(4)
@@ -32,8 +32,7 @@ def gpt_recommendations(movie_id: int,top_n: int = 5):
     :param top_n: The number of recommendations to return.
     """
     target_movie = Movie.objects.get(movie_id=movie_id)
-    print(target_movie.title)
-    
+
     # INFO: OpenAI() client defualt api-key is given fetched from a local os environmental variable.
     # If you want to use it, enter your own api key. OpenAI(api_key=CHATGPT_API_KEY)
     client = openai.OpenAI()
@@ -55,10 +54,10 @@ def gpt_recommendations(movie_id: int,top_n: int = 5):
 
     # Extract the recommendations from the response
     recommendations = response.choices[0].message.content
-    #get the last 20 lines which is hopefuly the recommendations
+    # Get the last 20 lines which is hopefuly the recommendations
     movie_lines = recommendations.split("\n")[-10:]
 
-    #extract movie titles from each line, get rid of the number, quotations etc
+    # Extract movie titles from each line, get rid of the number, quotations etc
     movie_titles = [line.split('. ', 1)[1].strip().strip("'").strip('"') for line in movie_lines if '. ' in line]
     # Filter out movies not present in the dataset, to be able to show additonal data.
     movie_queryset = Movie.objects.filter(title__in=movie_titles)
@@ -73,7 +72,8 @@ def gpt_recommendations(movie_id: int,top_n: int = 5):
 
 
 # noinspection PyPackageRequirements
-def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: bool = True, year_proximity:int = 5,top_n: int = 5):
+def year_genre_recommend(movie_id: int, type: str = "keyword",
+                         parental_control: bool = True, year_proximity: int = 5, top_n: int = 5):
     """
     Year-Genre recommendations
     Given a movie, recommends a list of movies based on similar release_year, popularity, genre count and the final
@@ -91,15 +91,15 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
     genres = ast.literal_eval(target_movie.genres)
     n_movie_genres = len(genres)
 
-    #exclude the target movie from recommendations
+    # exclude the target movie from recommendations
     all_movies = Movie.objects.exclude(movie_id=movie_id)
 
     if parental_control:
         # Do not include movies of higher age_ratings (except PG if the movie is G)
-        if target_movie.age_rating in ["G","PG"]:
-            all_movies = all_movies.filter(age_rating__in=["G","PG"])
+        if target_movie.age_rating in ["G", "PG"]:
+            all_movies = all_movies.filter(age_rating__in=["G", "PG"])
         elif target_movie.age_rating == "PG-13":
-            all_movies = all_movies.filter(age_rating__in=["G","PG","PG-13"])
+            all_movies = all_movies.filter(age_rating__in=["G", "PG", "PG-13"])
     # filter based on release date close to target movie
     close_years_movies = all_movies.filter(release_year__gte=movie_year-year_proximity, release_year__lte=movie_year+year_proximity)
     # convert to pandas dataframe
@@ -107,7 +107,7 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
     # compute the popularity of the movies
     close_years_movies_df['rating'] = close_years_movies_df['avg_ratings'] * (
                 close_years_movies_df.num_ratings / close_years_movies_df.num_ratings.max())
-    #include only first 600 most popular movies if there are more suitable
+    # include only first 600 most popular movies if there are more suitable
     if close_years_movies_df.shape[0] > 600:
         chosen_movies_genre_df = close_years_movies_df.sort_values("rating", ascending=False)[:600]
     else:
@@ -120,7 +120,6 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
     chosen_movies_genre_df["genre_similarity"]= gsim_column.fillna(gsim_column.mean())
 
     if type == "keyword":
-        print("keyword recommendations")
         # convert string to python list
         keywords = ast.literal_eval(target_movie.tmdb_keywords)
         n_keywords = len(keywords)
@@ -133,10 +132,8 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
         chosen_movies_genre_df["rating"] = chosen_movies_genre_df["keyword_similarity"] * chosen_movies_genre_df["genre_similarity"]
 
     elif type == "actors":
-        print("actors recommendations")
         # convert string to python list
         actors = ast.literal_eval(target_movie.actors)
-        n_actors = len(actors)
         # similar to other similarity computation
         chosen_movies_genre_df["actors_similarity"] = chosen_movies_genre_df["actors"].apply(
             lambda x: compute_similarity_actors(x, actors))
@@ -145,29 +142,26 @@ def year_genre_recommend(movie_id: int,type: str = "keyword", parental_control: 
         # combine genre and actors similarity
         chosen_movies_genre_df["rating"] = chosen_movies_genre_df["actors_similarity"] * chosen_movies_genre_df["genre_similarity"]
 
-    recommended_movies = format_movie_recommendations(chosen_movies_genre_df.sort_values("rating", ascending=False),round_to=2, top_n=top_n)
-    print(recommended_movies.columns)
+    recommended_movies = format_movie_recommendations(chosen_movies_genre_df.sort_values("rating", ascending=False),
+                                                      round_to=2, top_n=top_n)
     return recommended_movies.to_dict("records")
-
 
 
 def neighbours_recommend(movie_id: int, top_n: int = 5):
     """
     Given a movie, recommends a list of movies based on the average ratings of users that have rated the target movie
     5 stars, or 4 if not enough 5-star ratings exist and so on.
-    :param request: The Django request object.
     :param movie_id: The movie ID to get recommendations for.
     :param top_n: The number of recommendations to return.
     """
-    target_movie = Movie.objects.get(movie_id=movie_id)
-    movie_title = target_movie.title
     best_star_ratings = None
     for val in sorted(list(Rating.RATINGS.keys()), reverse=True):
         best_star_ratings = best_star_ratings.union(Rating.objects.filter(movie_id=movie_id, rating=val)) \
             if best_star_ratings else Rating.objects.filter(movie_id=movie_id, rating=val)
         if best_star_ratings.count() >= BEST_STAR_RATINGS:
             break
-    else: #DONT FORGET TO CHANGE FILIP
+    else:
+        # TODO: DONT FORGET TO CHANGE FILIP
         return #render(request, "error.html", {"error": "Not enough ratings available for movie."})
     neighbours = best_star_ratings.values_list("user_id", flat=True)
     neighbours_ratings = Rating.objects.filter(user_id__in=neighbours).exclude(movie_id=movie_id)
@@ -187,14 +181,14 @@ def neighbours_recommend(movie_id: int, top_n: int = 5):
                                                       round_to=2, top_n=top_n)
     return recommended_movies.to_dict("records")
 
-def semantic_recommend(request, movie_id: int = 0,
+
+def semantic_recommend(movie_id: int = 0,
                        metric: Literal["cosine", "euclidean"] = "cosine",
                        genres: List[str] = None,
                        pg: str = None,
                        top_n: int = 5):
     """
     Provides a list of movie recommendations based on semantic similarity between the movies synopsis' descriptions.
-    :param request: The Django request object.
     :param movie_id: The movie ID to get recommendations for.
     :param metric: The similarity metric to use, options are "cosine" or "euclidean". Cosine is recommended.
     :param genres: A list of genres to filter on to make recommendations more focused.
@@ -204,22 +198,9 @@ def semantic_recommend(request, movie_id: int = 0,
     Options are: "G", "PG", "PG-13", "R", "NC-17"
     :param top_n: The number of recommendations to return.
     """
-    if request.method == "POST":
-        try:
-            movie_id = request.POST.get("movie_id")
-            genres = request.POST.get("genres", None)
-            pg = request.POST.get("pg", None)
-            top_n = request.POST.get("top_n", 5)
-        except KeyError: #DONT FORGET TO FIX FILIP
-            return #render(request, "error.html", {"error": "Movie ID is required"})
-        metric = request.POST.get("metric", "cosine")
-    if request.method == "GET":
-        metric = request.GET.get("metric", "cosine")
-        genres = request.GET.getlist("genres", None)
-        pg = request.GET.get("pg", None)
-        top_n = request.GET.get("top_n", 5)
     target_movie = Movie.objects.get(movie_id=movie_id)
-    movie_title = target_movie.title
+    if not pg:
+        pg = target_movie.age_rating if compare_age_rating(target_movie.age_rating, SAFE_AGE_RATING.name) else None
     synopsis_vec = pickle.loads(bytes.fromhex(target_movie.synopsis_vec))
     all_movies_with_vecs = Movie.objects.filter(synopsis_vec__isnull=False).exclude(movie_id=movie_id)
     top_scores = SortedList(key=lambda x: -x[0]) if metric == "cosine" else SortedList(key=lambda x: x[0])
@@ -227,7 +208,8 @@ def semantic_recommend(request, movie_id: int = 0,
     if synopsis_vec is None:
         synopsis = target_movie.synopsis
         if synopsis is None:
-            return #render(request, "error.html", {"error": "No synopsis available for movie"}) #FIX THIS!!!!
+            # TODO: @Filip FIX THIS!!!!
+            return #render(request, "error.html", {"error": "No synopsis available for movie"})
         synopsis_vec = compute_synopsis_vec(synopsis)
         target_movie.synopsis_vec = synopsis_vec.dumps()
         target_movie.save()

@@ -26,6 +26,7 @@ class Singleton(type):
 class FastText(metaclass=Singleton):
 
     def __init__(self):
+        print("Loading FastText model into memory...")
         self.model = fasttext.load_model(config.FASTTEXT_MODEL_FILE)
 
     def __getitem__(self, item):
