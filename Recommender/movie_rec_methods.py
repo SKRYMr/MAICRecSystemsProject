@@ -20,6 +20,7 @@ def tqdm_recommendations(movie_id: int):
     rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)
     df_movies = read_frame(rec_movies)
     recommendations = format_movie_recommendations(df_movies, top_n=5)
+    print(recommendations.columns)
     return recommendations.to_dict("records")
 
 
