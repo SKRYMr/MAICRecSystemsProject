@@ -214,22 +214,24 @@ def semantic_recommend(movie_id: int = 0,
         target_movie.synopsis_vec = synopsis_vec.dumps()
         target_movie.save()
     # If an age rating has been provided for filtering, filter on that (first).
-    if pg:
-        exclusion_ids = set()
-        for movie in all_movies_with_vecs:
-            if not compare_age_rating(movie.age_rating, pg):
-                exclusion_ids.add(movie.movie_id)
-            if len(exclusion_ids) > MAX_IDS_PER_EXCLUSION:
-                all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
-                _ = all_movies_with_vecs.exists()
-                exclusion_ids = set()
-        all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
+    # if pg:
+    #     exclusion_ids = set()
+    #     for movie in all_movies_with_vecs:
+    #         if not compare_age_rating(movie.age_rating, pg):
+    #             exclusion_ids.add(movie.movie_id)
+    #         if len(exclusion_ids) > MAX_IDS_PER_EXCLUSION:
+    #             all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
+    #             _ = all_movies_with_vecs.exists()
+    #             exclusion_ids = set()
+    #     all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
     # If a list of genres has been provided for filtering, filter on those genres.
     if genres:
         for genre in genres:
             all_movies_with_vecs = all_movies_with_vecs.filter(genres__icontains=genre)
     # Compute scores for movies based on chosen similarity metric.
     for movie in all_movies_with_vecs:
+        if pg and not compare_age_rating(movie.age_rating, pg):
+            continue
         other_vec = pickle.loads(bytes.fromhex(movie.synopsis_vec))
         if metric == "cosine":
             similarity = round(1 - spatial.distance.cosine(synopsis_vec, other_vec), 4)
