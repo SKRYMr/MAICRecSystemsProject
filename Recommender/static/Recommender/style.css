@@ -42,6 +42,12 @@ body {
     border-bottom: 3px solid #E3651D;
     padding-bottom: 5px;
 }
+.double-line{
+  border-bottom: 3px solid #E3651D;
+  border-top: 3px solid #E3651D;
+  padding-top:5px;
+  padding-bottom: 5px;
+}
 
 .divider {
   border-left: 2px solid #BED754; /* Adjust thickness and color as needed */

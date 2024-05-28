@@ -119,6 +119,7 @@ def movie_recommendations(request):
         target_movie = Movie.objects.get(movie_id=movie_id)
         target_movie_dict = {
             "title": target_movie.title,
+            "year": target_movie.release_year
             # We can add more data if we want to I guess? but title should be sufficient.
         }
 

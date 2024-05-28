@@ -74,6 +74,7 @@
         let currentDisplayedMovies = 0;
 
         const search_btn = document.getElementById("search_btn");
+        const searchBar = document.getElementById("searchBar");
         search_btn.onclick = async function() {
             showLoading();
             const searchValue = document.getElementById("searchBar").value;
@@ -81,6 +82,13 @@
             const data = await response.json();
             displayMovies(data.movies, false);
         }
+
+        searchBar.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                search_btn.click();
+            }
+        });
 
         const load_more_btn = document.getElementById("loadMoreBtn");
         load_more_btn.onclick = async function() {

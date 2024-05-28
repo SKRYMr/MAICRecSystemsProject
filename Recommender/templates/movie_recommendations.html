@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Jersey+15&display=swap" rel="stylesheet">
     {% load static %}
     <link rel="stylesheet" href="{% static 'Recommender/style.css' %}">
@@ -16,12 +16,12 @@
         <div class="container mt-4">
             <div class="row align-items-center gap-3">
                 <div class="col-12 header-text text-center">
-                        <h1 class="line jersey-15-regular">Recommendations for movie - <span style="color:#affac3">{{target_movie.title}}</span></h1>
+                        <h1 class="line jersey-15-regular">Recommendations for movie - <span style="color:#affac3">{{target_movie.title}} ({{target_movie.year}})</span></h1>
                 </div>
             </div>
         </div>
     <!--- DROP DOWN MENU TO PICK WHICH METHOD -->
-    <div class="container mt-4 line">
+    <div class="container mt-4">
         <div class="row justify-content-center">
             <div class="col-md-6"> 
                 <label for="method" class="form-label" style="color: white;">Select Recommendation method:</label>
@@ -39,7 +39,7 @@
         
         {% for method, movies in recommendations.items %}
             <div id="recommendations-{{ method }}" class="recommendations-container" style="display: none;">
-                <h3 style="color:white" class="line">Function: {{ method }}</h3>
+                <h3 style="color:white" class="double-line">Function: {{ method }}</h3>
                 {% for movie in movies %}
                 <div class="container mt-4 text-wrap">
                     <div class="row mb-3 movie-row">
@@ -98,6 +98,9 @@
                                     {% if movie.rating %}
                                     <p class="card-text">{{ metrics|getitem:method|title }}: {{ movie.rating }}</p>
                                     {% endif %}
+                                    {% if movie.release_year %}
+                                    <p class="card-text">Year: {{ movie.release_year }}</p>
+                                    {% endif %}
                                     {% if movie.ratings_count %}
                                     <p class="card-text">Ratings Count: {{ movie.ratings_count|floatformat:0 }}</p>
                                     {% endif %}
@@ -111,30 +114,52 @@
             </div>
         {% endfor %}
         
+        <div id="recommendations-all" class="recommendations-container" style="display: none;">
+            {% for method, movies in recommendations.items %}
+            
+                <h3 style="color:white" class="line double-line mt-3">{{method}}</h3>
+                <div class="row mt-3">
+                    <!-- Card 1 -->
+                    {% for movie in movies %}
+                    <div class="col-md">
+                        <div class="card">
+                            <img src="{{movie.poster}}" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="card-img-top" alt="{{movie.title}} - Image">
+                            <div class="card-body">
+                                <h5 class="card-title">{{movie.title}}</h5>
+                                {% if movie.release_year %}
+                                    <p class="card-text">Year: {{ movie.release_year }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+                
+            
+            
+            
+        
     {% endif %}
     
     <!-- JavaScript to handle dropdown change -->
     <script>
-        // Function to handle dropdown change
         function handleMethodChange() {
-            console.log("Method changed");
-            // Get the selected method from the dropdown
             var selectedMethod = document.getElementById("method").value;
 
             // Hide all recommendation containers
-            var recommendationContainers = document.querySelectorAll("[id^='recommendations-']");
+            var recommendationContainers = document.querySelectorAll(".recommendations-container");
             recommendationContainers.forEach(function(container) {
                 container.style.display = "none";
             });
             
+            // Show the selected recommendation container
             if (selectedMethod === "all") {
-                // Show all recommendation containers
-                recommendationContainers.forEach(function(container) {
-                    container.style.display = "block";
-                });
+                document.getElementById("recommendations-all").style.display = "block";
             } else {
-                // Show the selected recommendation container
                 var selectedRecommendationContainer = document.getElementById("recommendations-" + selectedMethod);
+                
                 if (selectedRecommendationContainer) {
                     selectedRecommendationContainer.style.display = "block";
                 }
@@ -146,11 +171,6 @@
 
         // Call the function initially to display recommendations based on the initial selection
         handleMethodChange();
-
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
     </script>
 </body>
 </html>
