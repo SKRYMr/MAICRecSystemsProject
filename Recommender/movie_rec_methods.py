@@ -162,6 +162,7 @@ def neighbours_recommend(movie_id: int, top_n: int = 5):
     else:
         # TODO: DONT FORGET TO CHANGE FILIP
         print("Not enough ratings available for target movie.")
+        print(f"Available ratings: {best_star_ratings.count()}")
         return #render(request, "error.html", {"error": "Not enough ratings available for movie."})
     neighbours = best_star_ratings.values_list("user_id", flat=True)
     neighbours_ratings = Rating.objects.filter(user_id__in=neighbours).exclude(movie_id=movie_id)
@@ -186,6 +187,8 @@ def semantic_recommend(movie_id: int = 0,
                        metric: Literal["cosine", "euclidean"] = "cosine",
                        genres: List[str] = None,
                        pg: str = None,
+                       auto_genres: bool = False,
+                       auto_pg: bool = True,
                        top_n: int = 5):
     """
     Provides a list of movie recommendations based on semantic similarity between the movies synopsis' descriptions.
@@ -196,10 +199,14 @@ def semantic_recommend(movie_id: int = 0,
     This avoids situations like recommending horror movies about possessed toys
     when looking for recommendations for Toy Story, for example. Strongly recommended.
     Options are: "G", "PG", "PG-13", "R", "NC-17"
+    :param auto_genres: Whether to automatically detect the genres to filter on based on the ones from the target movie.
+    :param auto_pg: Whether to automatically detect the pg rating to filter on based on the one from the target movie.
     :param top_n: The number of recommendations to return.
     """
     target_movie = Movie.objects.get(movie_id=movie_id)
-    if not pg:
+    if not genres and auto_genres:
+        genres = {genre.strip(" '") for genre in target_movie.genres.strip("[]").split(",")}
+    if not pg and auto_pg:
         pg = target_movie.age_rating if compare_age_rating(target_movie.age_rating, SAFE_AGE_RATING.name) else None
     synopsis_vec = pickle.loads(bytes.fromhex(target_movie.synopsis_vec))
     all_movies_with_vecs = Movie.objects.filter(synopsis_vec__isnull=False).exclude(movie_id=movie_id)
@@ -213,24 +220,15 @@ def semantic_recommend(movie_id: int = 0,
         synopsis_vec = compute_synopsis_vec(synopsis)
         target_movie.synopsis_vec = synopsis_vec.dumps()
         target_movie.save()
-    # If an age rating has been provided for filtering, filter on that (first).
-    # if pg:
-    #     exclusion_ids = set()
-    #     for movie in all_movies_with_vecs:
-    #         if not compare_age_rating(movie.age_rating, pg):
-    #             exclusion_ids.add(movie.movie_id)
-    #         if len(exclusion_ids) > MAX_IDS_PER_EXCLUSION:
-    #             all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
-    #             _ = all_movies_with_vecs.exists()
-    #             exclusion_ids = set()
-    #     all_movies_with_vecs = all_movies_with_vecs.exclude(movie_id__in=exclusion_ids)
-    # If a list of genres has been provided for filtering, filter on those genres.
-    if genres:
-        for genre in genres:
-            all_movies_with_vecs = all_movies_with_vecs.filter(genres__icontains=genre)
     # Compute scores for movies based on chosen similarity metric.
     for movie in all_movies_with_vecs:
+        # If an age rating has been provided for filtering, filter on that (first).
         if pg and not compare_age_rating(movie.age_rating, pg):
+            continue
+        # If a list of genres has been provided for filtering, filter on those genres.
+        # This is equivalent to an OR filter.
+        # Currently, if a movie doesn't have any genres recorded, we always include it.
+        if genres and movie.genres and len(genres.intersection({genre.strip(" '") for genre in movie.genres.strip("[]").split(",")})) < 1:
             continue
         other_vec = pickle.loads(bytes.fromhex(movie.synopsis_vec))
         if metric == "cosine":
