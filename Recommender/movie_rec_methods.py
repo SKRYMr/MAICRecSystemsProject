@@ -1,16 +1,16 @@
-from django_pandas.io import read_frame
-import openai
-import pickle
-import pandas as pd
+from .utils import *
+
 import ast
-from .utils import (format_movie_recommendations, compute_similarity, compute_similarity_actors,
-                    compare_age_rating, compute_synopsis_vec, SAFE_AGE_RATING, posters_decorator, timing_decorator)
+import openai
+import pandas as pd
+import pickle
 from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT, POPULARITY_PENALTY, POPULARITY_PENALTY_CENTRE
 from .models import Movie, Rating
 from django.db.models import Avg, Count, Max
-from typing import Literal, List
+from django_pandas.io import read_frame
 from sortedcontainers import SortedList
 from scipy import spatial
+from typing import Literal, List
 
 
 @posters_decorator
@@ -36,8 +36,8 @@ def gpt_recommendations(movie_id: int, top_n: int = 5):
     """
     target_movie = Movie.objects.get(movie_id=movie_id)
 
-    # INFO: OpenAI() client defualt api-key is given fetched from a local os environmental variable.
-    # If you want to use it, enter your own api key. OpenAI(api_key=CHATGPT_API_KEY)
+    # INFO: OpenAI() client default api-key is given fetched from a local os environmental variable.
+    # If you want to use it, enter your own api key. OpenAI(api_key=OPENAI_API_KEY)
     client = openai.OpenAI()
     prompt = (
     f"Based on this movie: '{target_movie.title}', "
@@ -77,15 +77,16 @@ def gpt_recommendations(movie_id: int, top_n: int = 5):
 @posters_decorator
 @timing_decorator
 # noinspection PyPackageRequirements
-def year_genre_recommend(movie_id: int, type: str = "keyword",
+def year_genre_recommend(movie_id: int, metric: str = "keyword",
                          parental_control: bool = True, year_proximity: int = 5, top_n: int = 5):
     """
     Year-Genre recommendations
     Given a movie, recommends a list of movies based on similar release_year, popularity, genre count and the final
     criterion which is specified in the parameter "type".
     :param movie_id: The movie ID to get recommendations for.
-    :param type: Final parameter to consider in the recommendation. Can be one either "keyword" or "actors".
-    :param parental_control: Toggles a filter to not recommend movies for adult audiences if the target movie is for children
+    :param metric: Final parameter to consider in the recommendation. Can be one either "keyword" or "actors".
+    :param parental_control: Toggles a filter to not recommend movies for adult audiences
+    if the target movie is for children.
     :param year_proximity: The range of years from the reference movie to get recommendations for.
     :param top_n: The number of recommendations to return.
     """
@@ -100,13 +101,13 @@ def year_genre_recommend(movie_id: int, type: str = "keyword",
     all_movies = Movie.objects.exclude(movie_id=movie_id)
 
     if parental_control:
-        # Do not include movies of higher age_ratings (except PG if the movie is G)
-        if target_movie.age_rating in ["G", "PG"]:
-            all_movies = all_movies.filter(age_rating__in=["G", "PG"])
-        elif target_movie.age_rating == "PG-13":
-            all_movies = all_movies.filter(age_rating__in=["G", "PG", "PG-13"])
+        # Do not include movies of higher age_ratings
+        all_movies = all_movies.filter(age_rating__in=get_ratings_up_to(target_movie.age_rating
+                                                                        if target_movie.age_rating
+                                                                        else SAFE_AGE_RATING.name))
     # filter based on release date close to target movie
-    close_years_movies = all_movies.filter(release_year__gte=movie_year-year_proximity, release_year__lte=movie_year+year_proximity)
+    close_years_movies = all_movies.filter(release_year__gte=movie_year - year_proximity,
+                                           release_year__lte=movie_year + year_proximity)
     # convert to pandas dataframe
     close_years_movies_df = read_frame(close_years_movies)
     # compute the popularity of the movies
@@ -119,12 +120,14 @@ def year_genre_recommend(movie_id: int, type: str = "keyword",
         chosen_movies_genre_df = close_years_movies_df
 
     # Compute genre similarity
-    chosen_movies_genre_df["genre_similarity"] = chosen_movies_genre_df["genres"].apply(lambda x: compute_similarity(x,genres,n_movie_genres))
+    chosen_movies_genre_df["genre_similarity"] = chosen_movies_genre_df["genres"].apply(
+        lambda x: compute_similarity(x, genres, n_movie_genres)
+    )
     gsim_column = chosen_movies_genre_df["genre_similarity"]
     # Fill the empty rows with mean genre similarity
     chosen_movies_genre_df["genre_similarity"] = gsim_column.fillna(gsim_column.mean())
 
-    if type == "keyword":
+    if metric == "keyword":
         # convert string to python list
         keywords = ast.literal_eval(target_movie.tmdb_keywords)
         n_keywords = len(keywords)
@@ -136,7 +139,7 @@ def year_genre_recommend(movie_id: int, type: str = "keyword",
         # combine genre and actors similarity
         chosen_movies_genre_df["rating"] = chosen_movies_genre_df["keyword_similarity"] * chosen_movies_genre_df["genre_similarity"]
 
-    elif type == "actors":
+    elif metric == "actors":
         # convert string to python list
         actors = ast.literal_eval(target_movie.actors)
         # similar to other similarity computation
@@ -154,13 +157,18 @@ def year_genre_recommend(movie_id: int, type: str = "keyword",
 
 @posters_decorator
 @timing_decorator
-def neighbours_recommend(movie_id: int, top_n: int = 5):
+def neighbours_recommend(movie_id: int, top_n: int = 5, pg: str = None, auto_pg: bool = True):
     """
     Given a movie, recommends a list of movies based on the average ratings of users that have rated the target movie
     5 stars, or 4 if not enough 5-star ratings exist and so on.
     :param movie_id: The movie ID to get recommendations for.
     :param top_n: The number of recommendations to return.
+    :param pg: The minimum PG rating to filter recommendations on.
+    :param auto_pg: Whether to automatically detect the pg rating to filter on based on the one from the target movie.
     """
+    target_movie = Movie.objects.get(movie_id=movie_id)
+    if not pg and auto_pg:
+        pg = target_movie.age_rating if target_movie.age_rating else SAFE_AGE_RATING.name
     best_star_ratings = None
     for val in sorted(list(Rating.RATINGS.keys()), reverse=True):
         best_star_ratings = best_star_ratings.union(Rating.objects.filter(movie_id=movie_id, rating=val)) \
@@ -171,10 +179,12 @@ def neighbours_recommend(movie_id: int, top_n: int = 5):
         print("Not enough ratings available for target movie.")
         print(f"Available ratings: {best_star_ratings.count()}")
         # TODO: DONT FORGET TO CHANGE FILIP
-        return #render(request, "error.html", {"error": "Not enough ratings available for movie."})
+        return  # render(request, "error.html", {"error": "Not enough ratings available for movie."})
     neighbours = best_star_ratings.values_list("user_id", flat=True)
     minimum_ratings = int(neighbours.count() * MINIMUM_RATINGS_PERCENT)
     neighbours_ratings = Rating.objects.filter(user_id__in=neighbours).exclude(movie_id=movie_id)
+    if pg:
+        neighbours_ratings = neighbours_ratings.filter(movie__age_rating__in=get_ratings_up_to(pg))
     neighbours_ratings = (neighbours_ratings.values("movie_id")
                           .annotate(avg_rating=Avg("rating"),
                                     ratings_count=Count("movie_id"))
@@ -225,7 +235,7 @@ def semantic_recommend(movie_id: int = 0,
     if not genres and auto_genres:
         genres = set(ast.literal_eval(target_movie.genres))
     if not pg and auto_pg:
-        pg = target_movie.age_rating if compare_age_rating(target_movie.age_rating, SAFE_AGE_RATING.name) else None
+        pg = target_movie.age_rating if target_movie.age_rating else SAFE_AGE_RATING.name
     synopsis_vec = pickle.loads(bytes.fromhex(target_movie.synopsis_vec))
     all_movies_with_vecs = Movie.objects.filter(synopsis_vec__isnull=False).exclude(movie_id=movie_id)
     top_scores = SortedList(key=lambda x: -x[0]) if metric == "cosine" else SortedList(key=lambda x: x[0])
@@ -234,15 +244,15 @@ def semantic_recommend(movie_id: int = 0,
         synopsis = target_movie.synopsis
         if synopsis is None:
             # TODO: @Filip FIX THIS!!!!
-            return #render(request, "error.html", {"error": "No synopsis available for movie"})
+            return  # render(request, "error.html", {"error": "No synopsis available for movie"})
         synopsis_vec = compute_synopsis_vec(synopsis)
         target_movie.synopsis_vec = synopsis_vec.dumps()
         target_movie.save()
+    # If an age rating has been provided for filtering, filter on that (first).
+    if pg:
+        all_movies_with_vecs = all_movies_with_vecs.filter(age_rating__in=get_ratings_up_to(pg))
     # Compute scores for movies based on chosen similarity metric.
     for movie in all_movies_with_vecs:
-        # If an age rating has been provided for filtering, filter on that (first).
-        if pg and not compare_age_rating(movie.age_rating, pg):
-            continue
         # If a list of genres has been provided for filtering, filter on those genres.
         # This is equivalent to an OR filter.
         # Currently, if a movie doesn't have any genres recorded, we always include it.

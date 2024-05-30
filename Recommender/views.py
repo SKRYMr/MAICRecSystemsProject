@@ -7,10 +7,10 @@ from django.shortcuts import render
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT, extract_posters, POSTERS_CSV_PATH
 from .models import User, Movie, Rating
 
-from .utils import scrape_imdb_poster, get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
-from .movie_rec_methods import tqdm_recommendations, gpt_recommendations, year_genre_recommend, neighbours_recommend, semantic_recommend
-
-from typing import Literal, List
+from .utils import (scrape_imdb_poster, get_movies_recommendations, compute_synopsis_vec,
+                    format_movie_recommendations)
+from .movie_rec_methods import (tqdm_recommendations, gpt_recommendations, year_genre_recommend,
+                                neighbours_recommend, semantic_recommend)
 
 
 def index(request):
@@ -51,7 +51,7 @@ def extract_kaggle_posters(request):
 
 
 @user_passes_test(lambda u: u.is_superuser)
-def scrape_imdb_posters(request, batch_size: int = 100, safe: bool = True):
+def scrape_imdb_posters(request, batch_size: int = 100, safe: bool = True, force: bool = False):
     movies = Movie.objects.all()
     total = len(movies)
     success = 0
@@ -59,7 +59,7 @@ def scrape_imdb_posters(request, batch_size: int = 100, safe: bool = True):
     ignored = 0
     objs = []
     for i, movie in enumerate(movies):
-        if movie.imdb_poster:
+        if not force and movie.imdb_poster:
             ignored += 1
             continue
         if safe and errors >= 100:
@@ -166,8 +166,8 @@ def movie_recommendations(request):
             "recommendations": {
                 "TQDM Recommendations": tqdm_recommendations(movie_id),
                 "ChatGPT Recommendations": gpt_recommendations(movie_id),
-                "Year-Genre-Keywords Recommendations": year_genre_recommend(movie_id, type="keyword"),
-                "Year-Genre-Actor Recommendations": year_genre_recommend(movie_id, type="actors"),
+                "Year-Genre-Keywords Recommendations": year_genre_recommend(movie_id, metric="keyword"),
+                "Year-Genre-Actor Recommendations": year_genre_recommend(movie_id, metric="actors"),
                 "Neighbourhood Recommendations": neighbours_recommend(movie_id),
                 "Semantic Similarity Recommendations": semantic_recommend(movie_id)
             },

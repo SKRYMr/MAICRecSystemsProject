@@ -10,7 +10,7 @@ import time
 from bs4 import BeautifulSoup
 from django_pandas.io import read_frame
 from enum import Enum
-from typing import Set, Literal, Union
+from typing import Set, Literal, Union, List
 
 from .core import find_k_nearest, get_top_movies, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
 from .parse import preprocess_pipeline, clean_pipeline, vectorize
@@ -44,6 +44,19 @@ AgeRating = Enum("AgeRating", AgeRatingsDict)
 # This is used to determine whether it's safe to recommend a movie that doesn't have a record for the age rating.
 # If the requested age rating is higher than this value, then the movie will be recommended regardless.
 SAFE_AGE_RATING = AgeRating["PG-13"]
+
+
+def get_ratings_up_to(target_rating: str) -> List[str]:
+    target_rating = AgeRating[target_rating.upper()].value
+    tolerance = 0
+    if target_rating > SAFE_AGE_RATING.value:
+        tolerance = 1
+    valid_ratings = []
+    for rating, value in AgeRatingsDict.items():
+        if value > target_rating + tolerance:
+            break
+        valid_ratings.append(rating)
+    return valid_ratings
 
 
 def get_movies_recommendations(user_id: int, users: Set[int], ratings: pd.DataFrame, movies: pd.DataFrame,
@@ -93,11 +106,11 @@ def compare_age_rating(age_rating: str, target_rating: str) -> bool:
 
 
 def format_gpt_response(content: str) -> dict:
-    #get the last 20 lines which is hopefuly the recommendations
+    # Get the last 20 lines which is hopefuly the recommendations
     movie_lines = content.split("\n")[-10:]
 
-    #extract movie titles from each line, get rid of the number.
-    #movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines]
+    # Extract movie titles from each line, get rid of the number.
+    # movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines]
     movie_titles = [line.split('. ', 1)[1].strip() for line in movie_lines if '. ' in line]
 
     # Filter out movies not present in the dataset and get their queryset
@@ -119,12 +132,10 @@ def compute_similarity(x, reference, r_len):
         return None
 
     val = (2 * len(set(x).intersection(reference))) / (r_len + len(x))
-    #print(set(x).intersection(reference))
     return val
 
 
 def compute_similarity_actors(x, reference):
-    result = 0
     if pd.isna(x):
         return None
 
@@ -134,8 +145,6 @@ def compute_similarity_actors(x, reference):
         return None
 
     actors_overlap = len(set(x).intersection(reference))
-    #print(set(x).intersection(reference))
-    #print(actors_overlap)
     if actors_overlap == 0:
         result = 0.05
     else:
@@ -165,7 +174,13 @@ def posters_decorator(func):
         start = time.time()
         for recommendation in recommendations:
             if not recommendation.get("imdb_poster") and recommendation.get("tmdb_id"):
-                movie = Movie.objects.get(tmdb_id=recommendation["tmdb_id"])
+                # TODO: Change functions to also return movie_id in the recommendations
+                # Due to how pandas' DataFrame.to_dict("records") works, we don't have access
+                # to the movie_id field because it's used as the index of the dataframe and thus
+                # not included in the records dictionary. Only a handful of items has a missing
+                # tmdb_id but there are some duplicates. Will change in the future.
+                # movie = Movie.objects.get(movie_id=recommendation["movie_id"])
+                movie = Movie.objects.filter(tmdb_id=recommendation["tmdb_id"]).first()
                 if movie.imdb_link:
                     poster_link = scrape_imdb_poster(movie.imdb_link)
                     movie.imdb_poster = poster_link
