@@ -145,7 +145,8 @@ def compute_similarity_actors(x, reference):
 
 def scrape_imdb_poster(imdb_link: str) -> str:
     imdb_base_url = "https://www.imdb.com"
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0"}
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0",
+               "Accept-Language": "en-US,en;q=0.5"}
     bs = BeautifulSoup(requests.get(imdb_link, headers=headers).content, "lxml")
     poster_page = bs.find("a",
                           attrs={"class": "ipc-lockup-overlay", "aria-label": re.compile("View .* Poster")})["href"]
