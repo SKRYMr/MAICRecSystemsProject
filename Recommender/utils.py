@@ -159,6 +159,8 @@ def posters_decorator(func):
     @functools.wraps(func)
     def check_posters(*args, **kwargs):
         recommendations = func(*args, **kwargs)
+        if not recommendations:
+            return recommendations
         start = time.time()
         for recommendation in recommendations:
             if not recommendation.get("imdb_poster") and recommendation.get("tmdb_id"):
