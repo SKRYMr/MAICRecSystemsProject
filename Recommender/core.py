@@ -17,6 +17,20 @@ BEST_STAR_RATINGS = 5
 MINIMUM_RATINGS_PERCENT = 0.15
 # Parameter to make bigger queries compatible with lower versions of sqlite3.
 MAX_IDS_PER_EXCLUSION = 1000
+# Parameter to penalize excessively popular items appearing too frequently
+# or being scored too high. This is effectively multiplied with a number between
+# 0 and (POPULARITY_CENTRE - popularity)² where popularity is a number between 0 and 1
+# and then subtracted from the predicted rating for the movie.
+# In short, for a POPULARITY_CENTRE of 0.4 (the default), and a POPULARITY_PENALTY of 2
+# the maximum effective penalty is 2 * 0.36 = 0.72 points of rating (out of 5 as usual).
+POPULARITY_PENALTY = 2
+# Parameter to define the centre around which the popularity penalty is distributed.
+# The idea is to penalize both extremely popular movies and absolutely unknown ones.
+# Since the popularity is expressed as a decimal percentage, a centre of 0.5 would
+# imply perfect symmetry where the maximum penalty is applied equally to very popular
+# (popularity close to 1) and very niche (popularity close to 0) movies. A lower value
+# will penalize niche movies less and a higher value will penalize them more.
+POPULARITY_PENALTY_CENTRE = 0.4
 
 RATINGS_DAT_FILE = "./data/ratings.dat"
 MOVIES_DAT_FILE = "./data/movies.dat"

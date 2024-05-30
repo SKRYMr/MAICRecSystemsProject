@@ -10,6 +10,7 @@ urlpatterns = [
     path("compute_vecs/", views.compute_synopsis_vecs, name="compute_synopsis_vecs"),
     path("extract_data/drive/", views.extract_drive_data, name="extract_drive_data"),
     path("extract_data/kaggle/", views.extract_kaggle_posters, name="extract_kaggle_posters"),
+    path("extract_data/imdb/", views.scrape_imdb_posters, name="extract_imdb_posters"),
 
     path("search", views.search, name="search"),
     path("search_db", views.search_db, name="search_db"),

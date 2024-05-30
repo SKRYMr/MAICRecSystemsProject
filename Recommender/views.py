@@ -7,7 +7,7 @@ from django.shortcuts import render
 from .extract_data import extract_data, GOOGLE_DRIVE_ROOT, extract_posters, POSTERS_CSV_PATH
 from .models import User, Movie, Rating
 
-from .utils import get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
+from .utils import scrape_imdb_poster, get_movies_recommendations, compute_synopsis_vec, format_movie_recommendations, compare_age_rating
 from .movie_rec_methods import tqdm_recommendations, gpt_recommendations, year_genre_recommend, neighbours_recommend, semantic_recommend
 
 from typing import Literal, List
@@ -48,6 +48,44 @@ def extract_drive_data(request):
 def extract_kaggle_posters(request):
     total, updated = extract_posters(POSTERS_CSV_PATH)
     return render(request, "success.html", {"context": {"total": total, "updated": updated}})
+
+
+@user_passes_test(lambda u: u.is_superuser)
+def scrape_imdb_posters(request, batch_size: int = 100, safe: bool = True):
+    movies = Movie.objects.all()
+    total = len(movies)
+    success = 0
+    errors = 0
+    ignored = 0
+    objs = []
+    for i, movie in enumerate(movies):
+        if movie.imdb_poster:
+            ignored += 1
+            continue
+        if safe and errors >= 100:
+            break
+        try:
+            if not movie.imdb_link:
+                print(f"Movie {movie.movie_id} has no IMDB link.")
+                errors += 1
+                continue
+            movie.imdb_poster = scrape_imdb_poster(movie.imdb_link)
+            objs.append(movie)
+        except Exception as e:
+            print(f"Movie {movie.movie_id} encountered exception: {e}")
+            errors += 1
+            continue
+        if len(objs) >= batch_size:
+            with transaction.atomic():
+                updated = Movie.objects.bulk_update(objs, ["imdb_poster"], batch_size)
+                if updated > 0:
+                    objs = []
+                    success += updated
+    with transaction.atomic():
+        updated = Movie.objects.bulk_update(objs, ["imdb_poster"], batch_size)
+        success += updated
+    return render(request, "success.html",
+                  {"context": {"total": total, "successful": success, "errors": errors, "ignored": ignored}})
 
 
 def recommend_user(request):

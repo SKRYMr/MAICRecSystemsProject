@@ -18,10 +18,6 @@ class RecommenderConfig(AppConfig):
         import fasttext.util
         import nltk
         import os
-        import sqlite3
-        con = sqlite3.connect("db.sqlite3")
-        print(con.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER))
-        print(con.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, 250000))
         quiet = False
         if not os.path.isfile(RecommenderConfig.FASTTEXT_MODEL_FILE):
             fasttext.util.download_model("en", if_exists="ignore")

@@ -1,11 +1,16 @@
+import ast
+import functools
+
 import numpy as np
 import pandas as pd
-from django_pandas.io import read_frame
 import random
+import re
+import requests
+import time
+from bs4 import BeautifulSoup
+from django_pandas.io import read_frame
 from enum import Enum
 from typing import Set, Literal, Union
-import ast
-
 
 from .core import find_k_nearest, get_top_movies, NEIGHBOURHOOD_SIZE, MINIMUM_COMMON_RATINGS
 from .parse import preprocess_pipeline, clean_pipeline, vectorize
@@ -118,7 +123,7 @@ def compute_similarity(x, reference, r_len):
     return val
 
 
-def compute_similarity_actors(x,reference):
+def compute_similarity_actors(x, reference):
     result = 0
     if pd.isna(x):
         return None
@@ -136,6 +141,49 @@ def compute_similarity_actors(x,reference):
     else:
         result = actors_overlap / 10
     return result
+
+
+def scrape_imdb_poster(imdb_link: str) -> str:
+    imdb_base_url = "https://www.imdb.com"
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0"}
+    bs = BeautifulSoup(requests.get(imdb_link, headers=headers).content, "lxml")
+    poster_page = bs.find("a",
+                          attrs={"class": "ipc-lockup-overlay", "aria-label": re.compile("View .* Poster")})["href"]
+    bs = BeautifulSoup(requests.get(imdb_base_url + poster_page, headers=headers).content, "lxml")
+    poster_link = bs.find("img", attrs={"data-image-id": re.compile(".*-curr")})["src"]
+    return poster_link
+
+
+def posters_decorator(func):
+
+    @functools.wraps(func)
+    def check_posters(*args, **kwargs):
+        recommendations = func(*args, **kwargs)
+        start = time.time()
+        for recommendation in recommendations:
+            if not recommendation.get("imdb_poster") and recommendation.get("tmdb_id"):
+                movie = Movie.objects.get(tmdb_id=recommendation["tmdb_id"])
+                if movie.imdb_link:
+                    poster_link = scrape_imdb_poster(movie.imdb_link)
+                    movie.imdb_poster = poster_link
+                    movie.save()
+                    recommendation["imdb_poster"] = poster_link
+        print(f"Checking for posters took {time.time() - start}")
+        return recommendations
+
+    return check_posters
+
+
+def timing_decorator(func: callable):
+
+    @functools.wraps(func)
+    def timeit(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        print(f"Function {func.__name__} took {round(time.time() - start, 2)}")
+        return result
+
+    return timeit
 
 
 @register.filter

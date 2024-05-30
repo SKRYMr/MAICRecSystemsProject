@@ -18,6 +18,7 @@ class Movie(models.Model):
     runtime = models.IntegerField(null=True, blank=True)
     imdb_link = models.CharField(max_length=500, null=True, blank=True)
     poster = models.CharField(max_length=100, null=True, blank=True)
+    imdb_poster = models.CharField(max_length=200, null=True, blank=True)
     youtube_trailer_video_ids = models.TextField(null=True, blank=True)
     synopsis = models.TextField(max_length=5000, null=True)
     synopsis_vec = models.TextField(null=True)
