@@ -40,12 +40,16 @@ class User(models.Model):
 
 class Rating(models.Model):
     RATINGS = {
-        1: "Very Bad",
+        1: "Extremely Bad",
+        1.5: "Very Bad",
         2: "Bad",
+        2.5: "Somewhat Bad",
         3: "Neutral",
+        3.5: "Somewhat Good",
         4: "Good",
-        5: "Very Good"
+        4.5: "Very Good",
+        5: "Extremely Good"
     }
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    rating = models.IntegerField(choices=RATINGS)
+    rating = models.FloatField(choices=RATINGS)

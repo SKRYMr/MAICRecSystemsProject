@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render
-from .extract_data import extract_data, GOOGLE_DRIVE_ROOT, extract_posters, POSTERS_CSV_PATH
+from tqdm import tqdm
+from .extract_data import extract_data, GOOGLE_DRIVE_ROOT, extract_posters, POSTERS_CSV_PATH, RATINGS_CSV_PATH
 from .models import User, Movie, Rating
 
 from .utils import (scrape_imdb_poster, get_movies_recommendations, compute_synopsis_vec,
@@ -58,7 +59,7 @@ def scrape_imdb_posters(request, batch_size: int = 100, safe: bool = True, force
     errors = 0
     ignored = 0
     objs = []
-    for i, movie in enumerate(movies):
+    for i, movie in tqdm(enumerate(movies)):
         if not force and movie.imdb_poster:
             ignored += 1
             continue
@@ -86,6 +87,44 @@ def scrape_imdb_posters(request, batch_size: int = 100, safe: bool = True, force
         success += updated
     return render(request, "success.html",
                   {"context": {"total": total, "successful": success, "errors": errors, "ignored": ignored}})
+
+
+@user_passes_test(lambda u: u.is_superuser)
+def import_ratings(request, batch_size: int = 1000):
+    df = pd.read_csv(RATINGS_CSV_PATH,
+                     usecols=["userId", "movieId", "rating"]).rename(columns={"userId": "user_id",
+                                                                              "movieId": "movie_id"})
+    with transaction.atomic():
+        deleted, _ = Rating.objects.all().delete()
+    new_users = []
+    new_ratings = []
+    created_users = 0
+    created_ratings = 0
+    total_ratings = df.shape[0]
+    for _, item in tqdm(df.iterrows(), total=total_ratings):
+        if Movie.objects.filter(movie_id=item["movie_id"]).exists():
+            if not User.objects.filter(user_id=item["user_id"]).exists():
+                new_users.append(User(user_id=item["user_id"]))
+            new_ratings.append(Rating(user_id=item["user_id"], movie_id=item["movie_id"], rating=item["rating"]))
+        if len(new_ratings) >= batch_size:
+            with transaction.atomic():
+                newly_created_users = len(User.objects.bulk_create(new_users,
+                                                                   batch_size=batch_size,
+                                                                   ignore_conflicts=True)) if len(new_users) > 0 else 0
+                newly_created_ratings = len(Rating.objects.bulk_create(new_ratings,
+                                                                       batch_size=batch_size,
+                                                                       ignore_conflicts=True))
+                new_users = [] if newly_created_users > 0 else new_users
+                new_ratings = [] if newly_created_ratings > 0 else new_ratings
+                created_users += newly_created_users
+                created_ratings += newly_created_ratings
+    with transaction.atomic():
+        created_users += len(User.objects.bulk_create(new_users, batch_size=batch_size, ignore_conflicts=True))
+        created_ratings += len(Rating.objects.bulk_create(new_ratings, batch_size=batch_size, ignore_conflicts=True))
+    return render(request, "success.html", {"context": {"deleted": deleted,
+                                                        "total ratings": total_ratings,
+                                                        "users created": created_users,
+                                                        "ratings created": created_ratings}})
 
 
 def recommend_user(request):
@@ -158,8 +197,10 @@ def movie_recommendations(request):
         target_movie_dict = {
             "title": target_movie.title,
             "year": target_movie.release_year
-            # We can add more data if we want to I guess? but title should be sufficient.
+            # We can add more data if we want to I guess?
         }
+
+        # TODO: Maybe we can use multiprocess to perform every call in parallel and save a little bit of time
 
         context = {
             "target_movie": target_movie_dict,
@@ -168,7 +209,7 @@ def movie_recommendations(request):
                 "ChatGPT Recommendations": gpt_recommendations(movie_id),
                 "Year-Genre-Keywords Recommendations": year_genre_recommend(movie_id, metric="keyword"),
                 "Year-Genre-Actor Recommendations": year_genre_recommend(movie_id, metric="actors"),
-                "Neighbourhood Recommendations": neighbours_recommend(movie_id),
+                # "Neighbourhood Recommendations": neighbours_recommend(movie_id),
                 "Semantic Similarity Recommendations": semantic_recommend(movie_id)
             },
             "metrics": {

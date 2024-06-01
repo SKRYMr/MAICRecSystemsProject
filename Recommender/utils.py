@@ -186,7 +186,7 @@ def posters_decorator(func):
                     movie.imdb_poster = poster_link
                     movie.save()
                     recommendation["imdb_poster"] = poster_link
-        print(f"Checking for posters took {time.time() - start}")
+        print(f"Checking for posters took {round(time.time() - start, 3)}")
         return recommendations
 
     return check_posters
@@ -198,7 +198,7 @@ def timing_decorator(func: callable):
     def timeit(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
-        print(f"Function {func.__name__} took {round(time.time() - start, 2)}")
+        print(f"Function {func.__name__} took {round(time.time() - start, 3)}")
         return result
 
     return timeit
@@ -207,3 +207,8 @@ def timing_decorator(func: callable):
 @register.filter
 def getitem(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def percentage(value):
+    return round(value * 100)

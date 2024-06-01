@@ -102,7 +102,10 @@
                                     <p class="card-text">Year: {{ movie.release_year }}</p>
                                     {% endif %}
                                     {% if movie.ratings_count %}
-                                    <p class="card-text">Ratings Count: {{ movie.ratings_count|floatformat:0 }}</p>
+                                    <p class="card-text">Ratings: {{ movie.ratings_count|floatformat:0 }}</p>
+                                    {% endif %}
+                                    {% if movie.popularity %}
+                                    <p class="card-text">Popularity: {{ movie.popularity|percentage }}%</p>
                                     {% endif %}
                                 </div>
                             </div>

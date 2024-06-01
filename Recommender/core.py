@@ -21,8 +21,8 @@ MAX_IDS_PER_EXCLUSION = 1000
 # or being scored too high. This is effectively multiplied with a number between
 # 0 and (POPULARITY_CENTRE - popularity)² where popularity is a number between 0 and 1
 # and then subtracted from the predicted rating for the movie.
-# In short, for a POPULARITY_CENTRE of 0.4 (the default), and a POPULARITY_PENALTY of 2
-# the maximum effective penalty is 2 * 0.36 = 0.72 points of rating (out of 5 as usual).
+# In short, for a POPULARITY_CENTRE of 0.2 (the default), and a POPULARITY_PENALTY of 2
+# the maximum effective penalty is 2 * 0.49 = 0.98 points of rating (out of 5 as usual).
 POPULARITY_PENALTY = 2
 # Parameter to define the centre around which the popularity penalty is distributed.
 # The idea is to penalize both extremely popular movies and absolutely unknown ones.
@@ -30,7 +30,10 @@ POPULARITY_PENALTY = 2
 # imply perfect symmetry where the maximum penalty is applied equally to very popular
 # (popularity close to 1) and very niche (popularity close to 0) movies. A lower value
 # will penalize niche movies less and a higher value will penalize them more.
-POPULARITY_PENALTY_CENTRE = 0.4
+# However, due to how ratings are distributed in the database, the actual popularity is
+# heavily skewed towards the zero. Proper data analysis is required to understand the
+# optimal parameters.
+POPULARITY_PENALTY_CENTRE = 0.3
 
 RATINGS_DAT_FILE = "./data/ratings.dat"
 MOVIES_DAT_FILE = "./data/movies.dat"

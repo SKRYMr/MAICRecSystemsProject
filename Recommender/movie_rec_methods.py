@@ -22,7 +22,6 @@ def tqdm_recommendations(movie_id: int):
     rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)
     df_movies = read_frame(rec_movies)
     recommendations = format_movie_recommendations(df_movies, top_n=5)
-    print(recommendations.columns)
     return recommendations.to_dict("records")
 
 
@@ -34,6 +33,7 @@ def gpt_recommendations(movie_id: int, top_n: int = 5):
     :param movie_id: The movie ID to get recommendations for.
     :param top_n: The number of recommendations to return.
     """
+    # TODO: Investigate whether a faster library for http requests can improve performance.
     target_movie = Movie.objects.get(movie_id=movie_id)
 
     # INFO: OpenAI() client default api-key is given fetched from a local os environmental variable.
@@ -166,6 +166,8 @@ def neighbours_recommend(movie_id: int, top_n: int = 5, pg: str = None, auto_pg:
     :param pg: The minimum PG rating to filter recommendations on.
     :param auto_pg: Whether to automatically detect the pg rating to filter on based on the one from the target movie.
     """
+    # - TODO: Precompute this for each movie because right now it's way too slow.
+    # - TODO: Improve popularity penalties parameters with data analysis.
     target_movie = Movie.objects.get(movie_id=movie_id)
     if not pg and auto_pg:
         pg = target_movie.age_rating if target_movie.age_rating else SAFE_AGE_RATING.name
@@ -200,7 +202,8 @@ def neighbours_recommend(movie_id: int, top_n: int = 5, pg: str = None, auto_pg:
     recommended_movies.loc[movie_ids, "pre_rating"] = movie_ratings
     recommended_movies["rating"] = (
             recommended_movies.pre_rating -
-            POPULARITY_PENALTY * (POPULARITY_PENALTY_CENTRE - recommended_movies.popularity) ** 2)
+            POPULARITY_PENALTY * (POPULARITY_PENALTY_CENTRE - recommended_movies.popularity) ** 2
+    )
     recommended_movies.loc[movie_ids, "ratings_count"] = movie_ratings_count
     pd.options.display.max_columns = None
     pd.options.display.max_rows = None
@@ -215,6 +218,7 @@ def semantic_recommend(movie_id: int = 0,
                        metric: Literal["cosine", "euclidean"] = "cosine",
                        genres: List[str] = None,
                        pg: str = None,
+                       popularity_penalty: bool = False,
                        auto_genres: bool = False,
                        auto_pg: bool = True,
                        top_n: int = 5):
@@ -227,10 +231,13 @@ def semantic_recommend(movie_id: int = 0,
     This avoids situations like recommending horror movies about possessed toys
     when looking for recommendations for Toy Story, for example. Strongly recommended.
     Options are: "G", "PG", "PG-13", "R", "NC-17"
+    :param popularity_penalty: Whether to apply a penalty to similarity based on how popular the similar movie is.
     :param auto_genres: Whether to automatically detect the genres to filter on based on the ones from the target movie.
     :param auto_pg: Whether to automatically detect the pg rating to filter on based on the one from the target movie.
     :param top_n: The number of recommendations to return.
     """
+    # - TODO: Add popularity penalty? -> Seems worse for now, re-evaluate after popularity penalty has been optimized
+    # - TODO: Experiment with different embedding models.
     target_movie = Movie.objects.get(movie_id=movie_id)
     if not genres and auto_genres:
         genres = set(ast.literal_eval(target_movie.genres))
@@ -252,6 +259,7 @@ def semantic_recommend(movie_id: int = 0,
     if pg:
         all_movies_with_vecs = all_movies_with_vecs.filter(age_rating__in=get_ratings_up_to(pg))
     # Compute scores for movies based on chosen similarity metric.
+    max_ratings = Movie.objects.aggregate(max_ratings=Max("num_ratings"))["max_ratings"]
     for movie in all_movies_with_vecs:
         # If a list of genres has been provided for filtering, filter on those genres.
         # This is equivalent to an OR filter.
@@ -263,6 +271,8 @@ def semantic_recommend(movie_id: int = 0,
             similarity = round(1 - spatial.distance.cosine(synopsis_vec, other_vec), 4)
         else:
             similarity = round(spatial.distance.euclidean(synopsis_vec, other_vec), 4)
+        if popularity_penalty:
+            similarity -= (POPULARITY_PENALTY * (POPULARITY_PENALTY_CENTRE - (movie.num_ratings / max_ratings)) ** 2) / 5
         # We only care about keeping the first 5 entries so this is more memory efficient.
         if top_scores.bisect_right((similarity, movie.movie_id)) < top_n:
             top_scores.add((similarity, movie.movie_id))

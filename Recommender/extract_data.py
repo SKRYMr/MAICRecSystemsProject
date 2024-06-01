@@ -5,9 +5,11 @@ import requests
 from datetime import datetime
 from typing import List, Dict, Tuple
 from .models import Movie
+from RecSystems5.settings import BASE_DIR
 
-GOOGLE_DRIVE_ROOT = os.path.join(os.getcwd(), "extracted_content_ml-latest")
-POSTERS_CSV_PATH = os.path.join(os.getcwd(), "Recommender", "data", "metadata_filtered.csv")
+GOOGLE_DRIVE_ROOT = os.path.join(BASE_DIR, "extracted_content_ml-latest")
+POSTERS_CSV_PATH = os.path.join(BASE_DIR, "Recommender", "data", "metadata_filtered.csv")
+RATINGS_CSV_PATH = os.path.join(BASE_DIR, "Recommender", "data", "ml-25m", "ratings.csv")
 API_KEY = "347f057cc85997cb119a516c59c66063"
 DATETIME_FORMAT = "%Y-%m-%d"
 
