@@ -127,6 +127,21 @@ def year_genre_recommend(movie_id: int, metric: str = "keyword",
     # Fill the empty rows with mean genre similarity
     chosen_movies_genre_df["genre_similarity"] = gsim_column.fillna(gsim_column.mean())
 
+    # Handle missing data cases
+    if target_movie.tmdb_keywords is None or target_movie.actors is None:
+        # if both keywords and actors are missing compute rating based on popularity and genres
+        if target_movie.tmdb_keywords is None and target_movie.actors is None:
+            metric = "none"
+
+            chosen_movies_genre_df['rating'] = chosen_movies_genre_df["rating"]/chosen_movies_genre_df["rating"].max()
+
+            chosen_movies_genre_df["rating"] = chosen_movies_genre_df["genre_similarity"]*chosen_movies_genre_df["rating"]
+        # else switch the method with the alternative
+        elif target_movie.actors is None:
+            metric = "keyword"
+        else:
+            metric = "actors"
+
     if metric == "keyword":
         # convert string to python list
         keywords = ast.literal_eval(target_movie.tmdb_keywords)
