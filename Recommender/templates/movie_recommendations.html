@@ -15,8 +15,53 @@
     <!--- SHOW THE TITLE ETC  -->
         <div class="container mt-4">
             <div class="row align-items-center gap-3">
-                <div class="col-12 header-text text-center">
-                        <h1 class="line jersey-15-regular">Recommendations for movie - <span style="color:#affac3">{{target_movie.title}} ({{target_movie.year}})</span></h1>
+                <div class="col-12 d-flex gap-4">
+                    <div class="card" style="width: 200px; display: flex;">
+                        <img
+                            src="{{target_movie.imdb_poster}}"
+                            onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'"
+                            alt="{{target_movie.title}} - Image"
+                            class="card-img-top"
+                        />
+                    </div>
+                    <div>
+                        <h1 class="jersey-15-regular" style="color:#affac3">{{target_movie.title}} ({{target_movie.year}})</h1>
+
+                        {% for i in "12345" %}
+                            {%if i|add:"0" <= target_movie.avg_ratings|add:"0" %}
+                                <i class="fa fa-star checked"></i>
+                            {%else%}
+                                <i class="fa fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+
+                        <p style="margin-top: 10px">
+                            {% for genre in target_movie.genres %}
+                                <span class="badge rounded-pill text-bg-primary" style="padding: 7.5px 12.5px;">{{ genre }}</span>{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+
+                        <p style="color: white">
+                            <b>Actors: </b> {{target_movie.actors}}
+                        </p>
+
+                        <p style="color: white">
+                            <b>Directors: </b> {{target_movie.directors}}
+                        </p>
+
+                        {% if target_movie.age_rating == "G" %}
+                            <h3><span class="badge text-bg-success">{{target_movie.age_rating}}</span></h3>
+                        {% elif target_movie.age_rating == "PG" %}
+                            <h3><span class="badge text-bg-warning">{{target_movie.age_rating}}</span></h3>
+                        {% elif target_movie.age_rating == "PG-13" %}
+                            <h3><span class="badge text-bg-warning">{{target_movie.age_rating}}</span></h3>
+                        {% elif target_movie.age_rating == "R" %}
+                            <h3><span class="badge text-bg-danger">{{target_movie.age_rating}}</span></h3>
+                        {% elif target_movie.age_rating == "NC-17" %}
+                            <h3><span class="badge text-bg-danger">{{target_movie.age_rating}}</span></h3>
+                        {% endif %}
+                    </div>
+
                 </div>
             </div>
         </div>
