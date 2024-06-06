@@ -196,7 +196,13 @@ def movie_recommendations(request):
         target_movie = Movie.objects.get(movie_id=movie_id)
         target_movie_dict = {
             "title": target_movie.title,
-            "year": target_movie.release_year
+            "year": target_movie.release_year,
+            "imdb_poster": target_movie.imdb_poster,
+            "avg_ratings": target_movie.avg_ratings,
+            "age_rating": target_movie.age_rating,
+            "genres": target_movie.genres.replace("[", "").replace("]", "").replace("'", "").split(",") if target_movie.genres else [],
+            "actors": ", ".join(target_movie.actors.replace("[", "").replace("]", "").replace("'", "").split(",")[:4]) if target_movie.actors else "",
+            "directors": ", ".join(target_movie.directors.replace("[", "").replace("]", "").replace("'", "").split(",")[:4]) if target_movie.directors else "",
             # We can add more data if we want to I guess?
         }
 
