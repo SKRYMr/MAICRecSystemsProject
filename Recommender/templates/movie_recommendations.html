@@ -9,8 +9,40 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'Recommender/style.css' %}">
     <title>Recommender System</title>
+    <script>
+        function getRec(element) {
+            const csrftoken = "{{csrf_token}}";
+            console.log(csrftoken)
+            const movieId = element.getAttribute('id');
+            const form = document.createElement('form');
+            form.method = "POST";
+            form.action = '{% url 'Recommender:movie_recommendations' %}';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'movie_id';
+            input.value = movieId;
+            form.appendChild(input);
+            
+            // Create a CSRF token input field
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrftoken;
+
+            // Append CSRF token input field to the form
+            form.appendChild(csrfInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
 </head>
 <body>
+
+    <form action="{% url 'Recommender:index' %}" method="get">
+        <button type="submit" class="btn" style="background-color:#191919; position:absolute; top:10px; left:10px;"data-bs-toggle="tooltip" title="Return to search-page"><i class="fa fa-arrow-left" style="color:white;font-size:48px"></i></button>
+    </form>
+
     {% if recommendations %}
     <!--- SHOW THE TITLE ETC  -->
         <div class="container mt-4">
@@ -27,13 +59,6 @@
                     <div>
                         <h1 class="jersey-15-regular" style="color:#affac3">{{target_movie.title}} ({{target_movie.year}})</h1>
 
-                        {% for i in "12345" %}
-                            {%if i|add:"0" <= target_movie.avg_ratings|add:"0" %}
-                                <i class="fa fa-star checked"></i>
-                            {%else%}
-                                <i class="fa fa-star"></i>
-                            {% endif %}
-                        {% endfor %}
 
                         <p style="margin-top: 10px">
                             {% for genre in target_movie.genres %}
@@ -84,7 +109,7 @@
         
         {% for method, movies in recommendations.items %}
             <div id="recommendations-{{ method }}" class="recommendations-container" style="display: none;">
-                <h3 style="color:white" class="double-line">Function: {{ method }}</h3>
+                <h3 style="color:white" class="double-line">Function: {{ method }} <i class="fa fa-lightbulb-o" aria-hidden="true" style="color:yellow; right:200px; position:absolute;" data-bs-toggle="tooltip" title="Press any poster to get new recommendations!"></i></h3>
                 {% for movie in movies %}
                 <div class="container mt-4 text-wrap">
                     <div class="row mb-3 movie-row">
@@ -92,8 +117,8 @@
                             <h3 style="color:#BED754; font-size:60px;" class="jersey-15-regular">{{ forloop.counter }}</h3>
                         </div>
                         <div class="col-2 d-flex align-items-center justify-content-center">
-                            <!-- Many image-urls are broken, therefore a placeholder is used -->                
-                                <img src="{{movie.imdb_poster}}" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="img-thumbnail img-responsive" alt="poster-image">  
+                            <!-- Many image-urls are broken, therefore a placeholder is used -->             
+                                <img src="{{movie.imdb_poster}}" style="cursor:pointer;" id="{{movie.movie_id}}" onclick="getRec(this);" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="img-thumbnail img-responsive" alt="poster-image">  
                         </div>
                         <div class="col-5 mt-2">
                             <div class="card" style="background-color: #750E21; border: none; color:whitesmoke;">
@@ -102,56 +127,57 @@
                                         <!--- Some titles are formatted like "Matrix, The"-->
                                         <!--- Just split and move the "the" to the front of title-->
                                         {% if movie.title|slice:"-3:" == "The" %} 
-                                            The {{ movie.title|slice:": -5" }}
+                                            The {{ movie.title|slice:": -5" }} 
                                         {% else %}
                                             {{movie.title}}
                                         {% endif %}
-                                    {% for i in "12345" %}
-                                        {%if i|add:"0" <= movie.rating|add:"0" %}
-                                            <i class="fa fa-star checked"></i>
-                                        {%else%}
-                                            <i class="fa fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
+                                        {% if movie.release_year%}
+                                            ({{movie.release_year}})
+                                        {%endif%}
                                     </h4>
-                                    <p class="card-text">Description: {{ movie.synopsis }}</p>
+                                    <p class="card-text"> <b>Description:</b> {{ movie.synopsis }}</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-4 mt-2">
                             <div class="card mt-3 border-start border-end-0 border-top-0 border-bottom-0 border-warning" style="background-color: #750E21; color:whitesmoke;">
                                 <div class="card-body">
-                                    <p class="card-text">
-                                        Genres:
+                                    <p class="card-text" style="margin-top: 2px">
                                         {% for genre in movie.genres %}
-                                            <span>{{ genre }}</span>{% if not forloop.last %}, {% endif %}
+                                            <span class="badge rounded-pill text-bg-primary" style="padding: 7.5px 12.5px;">{{ genre }}</span>
                                         {% endfor %}
                                     </p>
                                 {% if movie.actors|length %}
                                     <p class="card-text">
-                                        Actors:
-                                        {% for actor in movie.actors|slice:":10" %} <!-- Limit to the first 5 actors -->
-                                        <!-- The actors list is in the form: "Characted played", "Actor", .. 
-                                                Therefore only print the actors name, and skip fictional characters.-->
-                                            {% if forloop.counter|divisibleby:2 %}
+                                        <b>Actors:</b>
+                                        {% for actor in movie.actors|slice:5 %} 
                                                 <span>{{ actor }}</span>{% if not forloop.last %}, {% endif %}
-                                            {% endif %}
                                         {% endfor %}
                                     </p>
                                 {% endif %}
-                                    <p class="card-text">Directors: {{ movie.directors|join:", " }}</p>
+                                    <p class="card-text"><b>Directors:</b> {{ movie.directors|join:", " }}</p>
                                     {% if movie.rating %}
-                                    <p class="card-text">{{ metrics|getitem:method|title }}: {{ movie.rating }}</p>
-                                    {% endif %}
-                                    {% if movie.release_year %}
-                                    <p class="card-text">Year: {{ movie.release_year }}</p>
+                                    <p class="card-text"><b>{{ metrics|getitem:method|title }}:</b> {{ movie.rating }}</p>
                                     {% endif %}
                                     {% if movie.ratings_count %}
-                                    <p class="card-text">Ratings: {{ movie.ratings_count|floatformat:0 }}</p>
+                                    <p class="card-text"><b>Ratings:</b> {{ movie.ratings_count|floatformat:0 }}</p>
                                     {% endif %}
                                     {% if movie.popularity %}
-                                    <p class="card-text">Popularity: {{ movie.popularity|percentage }}%</p>
+                                    <p class="card-text"><b>Popularity:</b> {{ movie.popularity|percentage }}%</p>
                                     {% endif %}
+                                    {%if movie.age_rating%}
+                                    {% if movie.age_rating == "G" %}
+                                        <p class="card-text"><span class="badge text-bg-success">{{movie.age_rating}}</span></p>
+                                    {% elif movie.age_rating == "PG" %}
+                                        <p class="card-text"><span class="badge text-bg-warning">{{movie.age_rating}}</span></p>
+                                    {% elif movie.age_rating == "PG-13" %}
+                                        <p class="card-text"><span class="badge text-bg-warning">{{movie.age_rating}}</span></p>
+                                    {% elif movie.age_rating == "R" %}
+                                        <p class="card-text"><span class="badge text-bg-danger">{{movie.age_rating}}</span></p>
+                                    {% elif movie.age_rating == "NC-17" %}
+                                        <p class="card-text"><span class="badge text-bg-danger">{{movie.age_rating}}</span></p>
+                                    {% endif %}
+                                    {%endif%}
                                 </div>
                             </div>
                         </div>
@@ -171,11 +197,11 @@
                     {% for movie in movies %}
                     <div class="col-md">
                         <div class="card">
-                            <img src="{{movie.imdb_poster}}" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="card-img-top" alt="{{movie.title}} - Image">
+                            <img src="{{movie.imdb_poster}}" style="cursor:pointer;" data-bs-toggle="tooltip" title="Description: {{movie.synopsis}} Actors: {% for actor in movie.actors|slice:5 %}{{ actor }}{% if not forloop.last %}, {% endif %}{% endfor %}" id="{{movie.movie_id}}" onclick="getRec(this);" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="card-img-top" alt="{{movie.title}} - Image">
                             <div class="card-body">
                                 <h5 class="card-title">{{movie.title}}</h5>
                                 {% if movie.release_year %}
-                                    <p class="card-text">Year: {{ movie.release_year }}</p>
+                                    <p class="card-text"><b>Year:</b> {{ movie.release_year }}</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -217,8 +243,10 @@
         // Add event listener to the dropdown
         document.getElementById("method").addEventListener("change", handleMethodChange);
 
+        
         // Call the function initially to display recommendations based on the initial selection
         handleMethodChange();
+        
     </script>
 </body>
 </html>
