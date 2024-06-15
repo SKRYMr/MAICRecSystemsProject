@@ -10,10 +10,20 @@
     <link rel="stylesheet" href="{% static 'Recommender/style.css' %}">
     <title>Recommender System</title>
     <script>
-        function getRec(element) {
+        async function getRec(element) {
+            document.getElementById("loadingScreen").style.display = "flex";
+
             const csrftoken = "{{csrf_token}}";
-            console.log(csrftoken)
-            const movieId = element.getAttribute('id');
+            
+            const idstring = element.getAttribute('id');
+            let parts = idstring.split('.', 2);
+            movieId = parts[0]
+            movieTitle = parts[1]
+            
+
+           
+            document.getElementById("loading_movie").innerHTML += parts[1]
+
             const form = document.createElement('form');
             form.method = "POST";
             form.action = '{% url 'Recommender:movie_recommendations' %}';
@@ -34,15 +44,43 @@
             form.appendChild(csrfInput);
             document.body.appendChild(form);
             form.submit();
+
         }
     </script>
+    <style>
+        #loadingScreen {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000; /* Above other elements */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            justify-content: center;
+            align-items: center;
+        }
+        #loadingMessage {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+    </style>
 </head>
 <body>
 
     <form action="{% url 'Recommender:index' %}" method="get">
         <button type="submit" class="btn" style="background-color:#191919; position:absolute; top:10px; left:10px;"data-bs-toggle="tooltip" title="Return to search-page"><i class="fa fa-arrow-left" style="color:white;font-size:48px"></i></button>
     </form>
-
+    <div id="loadingScreen">
+        <div id="loadingMessage">
+            <h2>Loading...</h2>
+            <p id="loading_movie">Getting recommendations for movie: </p>
+            <i class="fa fa-spinner fa-spin" style="font-size: 50px;"></i>
+        </div>
+    </div>
     {% if recommendations %}
     <!--- SHOW THE TITLE ETC  -->
         <div class="container mt-4">
@@ -118,7 +156,7 @@
                         </div>
                         <div class="col-2 d-flex align-items-center justify-content-center">
                             <!-- Many image-urls are broken, therefore a placeholder is used -->             
-                                <img src="{{movie.imdb_poster}}" style="cursor:pointer;" id="{{movie.movie_id}}" onclick="getRec(this);" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="img-thumbnail img-responsive" alt="poster-image">  
+                                <img src="{{movie.imdb_poster}}" style="cursor:pointer;" id="{{movie.movie_id}}.{{movie.title}}" onclick="getRec(this);" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="img-thumbnail img-responsive" alt="poster-image">  
                         </div>
                         <div class="col-5 mt-2">
                             <div class="card" style="background-color: #750E21; border: none; color:whitesmoke;">
@@ -191,13 +229,18 @@
         <div id="recommendations-all" class="recommendations-container" style="display: none;">
             {% for method, movies in recommendations.items %}
             
-                <h3 style="color:white" class="line double-line mt-3">{{method}}</h3>
+                <h3 style="color:white" class="line double-line mt-3">{{method}} <i class="fa fa-lightbulb-o" aria-hidden="true" style="color:yellow; right:200px; position:absolute;" data-bs-toggle="tooltip" title="Press any poster to get new recommendations!"></i></h3>
                 <div class="row mt-3">
                     <!-- Card 1 -->
                     {% for movie in movies %}
                     <div class="col-md">
                         <div class="card">
-                            <img src="{{movie.imdb_poster}}" style="cursor:pointer;" data-bs-toggle="tooltip" title="Description: {{movie.synopsis}} Actors: {% for actor in movie.actors|slice:5 %}{{ actor }}{% if not forloop.last %}, {% endif %}{% endfor %}" id="{{movie.movie_id}}" onclick="getRec(this);" onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="card-img-top" alt="{{movie.title}} - Image">
+                            <img src="{{movie.imdb_poster}}" style="cursor:pointer;" 
+                                data-bs-toggle="tooltip" 
+                                title="Description: {{movie.synopsis}} Actors: {% for actor in movie.actors|slice:5 %}{{ actor }}{% if not forloop.last %}, {% endif %}{% endfor %}" 
+                                id="{{movie.movie_id}}.{{movie.title}}" 
+                                onclick="getRec(this);" 
+                                onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/660px-No-Image-Placeholder.svg.png?20200912122019'" class="card-img-top" alt="{{movie.title}} - Image">
                             <div class="card-body">
                                 <h5 class="card-title">{{movie.title}}</h5>
                                 {% if movie.release_year %}
