@@ -9,7 +9,7 @@ from .extract_data import extract_data, GOOGLE_DRIVE_ROOT, extract_posters, POST
 from .models import User, Movie, Rating
 
 from .utils import (scrape_imdb_poster, get_movies_recommendations, compute_synopsis_vec,
-                    format_movie_recommendations)
+                    format_movie_recommendations, evaluate_recommendations)
 from .movie_rec_methods import (tqdm_recommendations, gpt_recommendations, year_genre_recommend,
                                 neighbours_recommend, semantic_recommend)
 
@@ -225,6 +225,8 @@ def movie_recommendations(request):
                 "Semantic Similarity Recommendations": "Cosine Similarity"
             }
         }
+
+        print(evaluate_recommendations(context['recommendations'], target_movie.tmdb_recommendations))
 
         return render(request, "movie_recommendations.html", context)
     else:

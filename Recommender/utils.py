@@ -152,6 +152,28 @@ def compute_similarity_actors(x, reference):
     return result
 
 
+def evaluate_recommendations(recommendations, ground_truth):
+    recs = {}
+    ground_truth = ast.literal_eval(ground_truth)
+    if len(ground_truth) == 0:
+        print("No ground truth available")
+
+    print("Evaluating")
+    for key, reclist in recommendations.items():
+
+        if key != "TQDM Recommendations":
+            recs[key] = []
+            for rec in reclist:
+                recs[key].append(rec["tmdb_id"])
+
+    precisions = {}
+    for key, reclist in recs.items():
+        overlap_len = len(set(reclist).intersection(ground_truth))
+        precisions[key] = overlap_len / len(reclist)
+
+    return precisions
+
+
 def scrape_imdb_poster(imdb_link: str) -> str:
     imdb_base_url = "https://www.imdb.com"
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0",
