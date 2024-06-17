@@ -1,6 +1,13 @@
 from django.db import models
 
 
+class Neighbourhood(models.Model):
+    neighbourhood_id = models.IntegerField(primary_key=True)
+    movie_ids = models.TextField()
+    ratings = models.TextField()
+    ratings_counts = models.TextField()
+
+
 class Movie(models.Model):
     movie_id = models.IntegerField(primary_key=True)
     tmdb_id = models.IntegerField(null=True, blank=True)
@@ -25,6 +32,7 @@ class Movie(models.Model):
     tmdb_recommendations = models.TextField(null=True, blank=True)
     tmdb_keywords = models.TextField(null=True, blank=True)
     tmdb_popularity = models.FloatField(null=True, blank=True)
+    neighbourhood = models.ForeignKey(Neighbourhood, null=True, blank=True, on_delete=models.CASCADE)
 
     @staticmethod
     def get_base_url() -> str:

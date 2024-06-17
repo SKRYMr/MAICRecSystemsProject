@@ -158,7 +158,7 @@ def evaluate_recommendations(recommendations, ground_truth):
     if len(ground_truth) == 0:
         print("No ground truth available")
 
-    print("Evaluating")
+    print("Evaluation:")
     # Get tmdb id lists of recommendations
     for key, reclist in recommendations.items():
 
@@ -171,7 +171,7 @@ def evaluate_recommendations(recommendations, ground_truth):
     # Compute precision by comparing how many movie ids appear in the ground truth
     for key, reclist in recs.items():
         overlap_len = len(set(reclist).intersection(ground_truth))
-        precisions[key] = overlap_len / len(reclist)
+        precisions[key] = overlap_len / len(reclist) if len(reclist) > 0 else 0
 
     return precisions
 

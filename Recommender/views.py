@@ -38,6 +38,11 @@ def compute_synopsis_vecs(request):
 
 
 @user_passes_test(lambda u: u.is_superuser)
+def compute_neighbours_recommend(request):
+    force = request.GET.get("force", False)
+
+
+@user_passes_test(lambda u: u.is_superuser)
 @transaction.atomic
 def extract_drive_data(request):
     total, created, updated = extract_data(GOOGLE_DRIVE_ROOT)
@@ -215,8 +220,8 @@ def movie_recommendations(request):
                 "ChatGPT Recommendations": gpt_recommendations(movie_id),
                 "Year-Genre-Keywords Recommendations": year_genre_recommend(movie_id, metric="keyword"),
                 "Year-Genre-Actor Recommendations": year_genre_recommend(movie_id, metric="actors"),
-                # "Neighbourhood Recommendations": neighbours_recommend(movie_id),
-                "Semantic Similarity Recommendations": semantic_recommend(movie_id)
+                "Neighbourhood Recommendations": neighbours_recommend(movie_id),
+                "Semantic Similarity Recommendations": semantic_recommend(movie_id, scale=10)
             },
             "metrics": {
                 "Year-Genre-Keywords Recommendations": "Score",

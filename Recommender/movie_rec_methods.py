@@ -4,8 +4,9 @@ import ast
 import openai
 import pandas as pd
 import pickle
-from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT, POPULARITY_PENALTY, POPULARITY_PENALTY_CENTRE
-from .models import Movie, Rating
+from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT, compute_popularity_penalty
+from .models import Movie, Rating, Neighbourhood
+from django.db import transaction
 from django.db.models import Avg, Count, Max
 from django_pandas.io import read_frame
 from sortedcontainers import SortedList
@@ -22,7 +23,6 @@ def tqdm_recommendations(movie_id: int):
     rec_movies = Movie.objects.filter(tmdb_id__in=rec_ids)
     df_movies = read_frame(rec_movies)
     recommendations = format_movie_recommendations(df_movies, top_n=5)
-    print("TQDM")
     return recommendations.to_dict("records")
 
 
@@ -71,7 +71,6 @@ def gpt_recommendations(movie_id: int, top_n: int = 5):
     df_movies['title'] = pd.Categorical(df_movies['title'], categories=movie_titles, ordered=True)
     df_movies = df_movies.sort_values('title')
     recommendations = format_movie_recommendations(df_movies, top_n=top_n)
-    print("CHATGPT")
     return recommendations.to_dict("records")
 
 
@@ -168,8 +167,6 @@ def year_genre_recommend(movie_id: int, metric: str = "keyword",
 
     recommended_movies = format_movie_recommendations(chosen_movies_genre_df.sort_values("rating", ascending=False),
                                                       round_to=2, top_n=top_n)
-    
-    print("ygk")
     return recommended_movies.to_dict("records")
 
 
@@ -185,8 +182,18 @@ def neighbours_recommend(movie_id: int, top_n: int = 5, pg: str = None, auto_pg:
     :param auto_pg: Whether to automatically detect the pg rating to filter on based on the one from the target movie.
     """
     # - TODO: Precompute this for each movie because right now it's way too slow.
-    # - TODO: Improve popularity penalties parameters with data analysis.
     target_movie = Movie.objects.get(movie_id=movie_id)
+    if target_movie.neighbourhood_id:
+        neighbourhood = Neighbourhood.objects.get(neighbourhood_id=target_movie.neighbourhood_id)
+        movie_ids = ast.literal_eval(neighbourhood.movie_ids)
+        recommended_movies = read_frame(Movie.objects.filter(movie_id__in=movie_ids)).set_index("movie_id")
+        recommended_movies.loc[movie_ids, "rating"] = ast.literal_eval(neighbourhood.ratings)
+        recommended_movies.loc[movie_ids, "ratings_count"] = ast.literal_eval(neighbourhood.ratings_counts)
+        max_ratings = Movie.objects.aggregate(max_ratings=Max("num_ratings"))["max_ratings"]
+        recommended_movies["popularity"] = recommended_movies.num_ratings / max_ratings
+        recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False),
+                                                          round_to=2, top_n=top_n)
+        return recommended_movies.to_dict("records")
     if not pg and auto_pg:
         pg = target_movie.age_rating if target_movie.age_rating else SAFE_AGE_RATING.name
     best_star_ratings = None
@@ -218,17 +225,26 @@ def neighbours_recommend(movie_id: int, top_n: int = 5, pg: str = None, auto_pg:
     max_ratings = Movie.objects.aggregate(max_ratings=Max("num_ratings"))["max_ratings"]
     recommended_movies["popularity"] = recommended_movies.num_ratings / max_ratings
     recommended_movies.loc[movie_ids, "pre_rating"] = movie_ratings
-    recommended_movies["rating"] = (
-            recommended_movies.pre_rating -
-            POPULARITY_PENALTY * (POPULARITY_PENALTY_CENTRE - recommended_movies.popularity) ** 2
-    )
+    recommended_movies["rating"] = recommended_movies.pre_rating - compute_popularity_penalty(recommended_movies.popularity, recommended_movies.index)
     recommended_movies.loc[movie_ids, "ratings_count"] = movie_ratings_count
-    pd.options.display.max_columns = None
-    pd.options.display.max_rows = None
     recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False),
                                                       round_to=2, top_n=top_n)
-    print("Neighbour")
-    
+
+    print(recommended_movies.index)
+    print(recommended_movies.title)
+    print(recommended_movies.rating)
+    print(recommended_movies.ratings_count)
+
+    neighbourhood = Neighbourhood(neighbourhood_id=target_movie.movie_id,
+                                  movie_ids=list(recommended_movies.index),
+                                  ratings=list(recommended_movies.rating),
+                                  ratings_counts=list(recommended_movies.ratings_count))
+
+    with transaction.atomic():
+        neighbourhood.save()
+        target_movie.neighbourhood_id = target_movie.movie_id
+        target_movie.save()
+
     return recommended_movies.to_dict("records")
 
 
@@ -241,7 +257,8 @@ def semantic_recommend(movie_id: int = 0,
                        popularity_penalty: bool = False,
                        auto_genres: bool = False,
                        auto_pg: bool = True,
-                       top_n: int = 5):
+                       top_n: int = 5,
+                       scale: int = 1):
     """
     Provides a list of movie recommendations based on semantic similarity between the movies synopsis' descriptions.
     :param movie_id: The movie ID to get recommendations for.
@@ -255,6 +272,7 @@ def semantic_recommend(movie_id: int = 0,
     :param auto_genres: Whether to automatically detect the genres to filter on based on the ones from the target movie.
     :param auto_pg: Whether to automatically detect the pg rating to filter on based on the one from the target movie.
     :param top_n: The number of recommendations to return.
+    :param scale: Cosine similarity scores are in the range [0,1], use this parameter to rescale them into any interval.
     """
     # - TODO: Add popularity penalty? -> Seems worse for now, re-evaluate after popularity penalty has been optimized
     # - TODO: Experiment with different embedding models.
@@ -292,7 +310,7 @@ def semantic_recommend(movie_id: int = 0,
         else:
             similarity = round(spatial.distance.euclidean(synopsis_vec, other_vec), 4)
         if popularity_penalty:
-            similarity -= (POPULARITY_PENALTY * (POPULARITY_PENALTY_CENTRE - (movie.num_ratings / max_ratings)) ** 2) / 5
+            similarity -= compute_popularity_penalty(movie.num_ratings / max_ratings) / 5
         # We only care about keeping the first 5 entries so this is more memory efficient.
         if top_scores.bisect_right((similarity, movie.movie_id)) < top_n:
             top_scores.add((similarity, movie.movie_id))
@@ -300,12 +318,11 @@ def semantic_recommend(movie_id: int = 0,
     recommended_movies = read_frame(
         Movie.objects.filter(movie_id__in=[movie_id for _, movie_id in top_scores])
     ).set_index("movie_id")
-    # Multiply score by 5 to make it compatible with the stars in the frontend.
+    # Multiply score by scale to make it compatible with the stars in the frontend.
     # This only really works with cosine similarity.
-    recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * 5 for score, _ in top_scores]
+    recommended_movies.loc[[movie_id for _, movie_id in top_scores], "rating"] = [score * scale for score, _ in top_scores]
     recommended_movies = format_movie_recommendations(
         recommended_movies.sort_values("rating", ascending=False if metric == "cosine" else True), round_to=2
     )
-    print("semantic")
-    
+
     return recommended_movies.to_dict("records")

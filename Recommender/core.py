@@ -1,8 +1,10 @@
 import numpy as np
+import math
 import pandas as pd
 import sys
 import time
-from typing import Tuple, Literal
+from collections.abc import Iterable
+from typing import Tuple, Literal, Union
 
 TIME_FUNCS = False
 NEIGHBOURHOOD_SIZE = 50
@@ -21,19 +23,38 @@ MAX_IDS_PER_EXCLUSION = 1000
 # or being scored too high. This is effectively multiplied with a number between
 # 0 and (POPULARITY_CENTRE - popularity)² where popularity is a number between 0 and 1
 # and then subtracted from the predicted rating for the movie.
-# In short, for a POPULARITY_CENTRE of 0.2 (the default), and a POPULARITY_PENALTY of 2
-# the maximum effective penalty is 2 * 0.49 = 0.98 points of rating (out of 5 as usual).
-POPULARITY_PENALTY = 2
+# The range of popularities is HEAVILY skewed towards 0.
+# 71.3% of movies have a popularity between 0 and 0.05%
+# Here is a short summary of penalties applied to movies of the corresponding popularity:
+# POPULARITY: PENALTY
+# 1e-05: 0.0
+# 5e-05: 0.01431
+# 0.0001: 0.02561
+# 0.0005: 0.06791
+# 0.001: 0.09801
+# 0.005: 0.22271
+# 0.01: 0.3156
+# 0.05: 0.70682
+# 0.1: 0.9998
+# 0.2: 1.41407
+# 0.3: 1.73194
+# 0.4: 1.9999
+# 0.5: 2.23598
+# 0.6: 2.44941
+# 0.7: 2.64568
+# 0.8: 2.82836
+# 0.9: 2.99993
+# 1.0: 3.16221
+POPULARITY_PENALTY_WEIGHT = 100000000
 # Parameter to define the centre around which the popularity penalty is distributed.
 # The idea is to penalize both extremely popular movies and absolutely unknown ones.
-# Since the popularity is expressed as a decimal percentage, a centre of 0.5 would
+# Since the popularity is expressed as a decimal percentage, ideally a centre of 0.5 would
 # imply perfect symmetry where the maximum penalty is applied equally to very popular
 # (popularity close to 1) and very niche (popularity close to 0) movies. A lower value
 # will penalize niche movies less and a higher value will penalize them more.
 # However, due to how ratings are distributed in the database, the actual popularity is
-# heavily skewed towards the zero. Proper data analysis is required to understand the
-# optimal parameters.
-POPULARITY_PENALTY_CENTRE = 0.3
+# heavily skewed towards the zero.
+POPULARITY_PENALTY_CENTRE = 0.00001
 
 RATINGS_DAT_FILE = "./data/ratings.dat"
 MOVIES_DAT_FILE = "./data/movies.dat"
@@ -122,7 +143,7 @@ def get_top_movies(user_id: int, neighbours: list, ratings: pd.DataFrame, movies
         user_avg_rating = user_ratings.rating.mean()
         avg_neighbours_ratings = neighbours_ratings.groupby("user_id").rating.mean().reset_index()
         similarities_sum = sum(similarities.values())
-        predicted_ratings = [(movie_id, user_avg_rating + 
+        predicted_ratings = [(movie_id, user_avg_rating +
                                        (sum([similarities[neighbour_id]*(rating.item() - avg_neighbours_ratings[avg_neighbours_ratings["user_id"] == neighbour_id].rating.item() if not (rating := ratings[(ratings["user_id"] == neighbour_id) & (ratings["movie_id"] == movie_id)].rating).empty else 0) for neighbour_id in neighbours])
                                          / similarities_sum))
                               for movie_id in movies[movies.movie_id.isin(neighbours_ratings.movie_id.unique())].movie_id.unique()]
@@ -162,3 +183,11 @@ def get_best_users(user_item_table: pd.DataFrame, min_corr: float = 0.25) -> pd.
 
 def rate_movies_by_best_users(best_users: pd.DataFrame, user_movies: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(best_users.apply(np.average, axis=0), columns=["avg_rating"]).sort_values("avg_rating", ascending=False).drop(user_movies["movie_id"])
+
+
+def compute_popularity_penalty(popularity: Union[float, Iterable], index: Iterable = None):
+    weight = lambda x: POPULARITY_PENALTY_WEIGHT / math.sqrt((x / POPULARITY_PENALTY_CENTRE) ** 3)
+    penalty = lambda x: weight(x) * (x - POPULARITY_PENALTY_CENTRE) ** 2
+    return popularity.__class__([penalty(pop) for pop in popularity], index) \
+        if isinstance(popularity, Iterable) \
+        else penalty(popularity)
