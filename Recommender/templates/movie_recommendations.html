@@ -134,10 +134,10 @@
             <div class="col-md-6"> 
                 <label for="method" class="form-label" style="color: white;">Select Recommendation method:</label>
                 <select class="form-select form-select-sm mb-3" name="method" id="method">
+                    <option value="all">Show All</option>
                     {% for method, movies in recommendations.items %}
                         <option value="{{ method }}">{{ method }}</option>
                     {% endfor %}
-                    <option value="all">Show All</option>
                 </select>
             </div>
         </div>
