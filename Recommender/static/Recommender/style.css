@@ -42,6 +42,12 @@ body {
     border-bottom: 3px solid #E3651D;
     padding-bottom: 5px;
 }
+.double-line{
+  border-bottom: 3px solid #E3651D;
+  border-top: 3px solid #E3651D;
+  padding-top:5px;
+  padding-bottom: 5px;
+}
 
 .divider {
   border-left: 2px solid #BED754; /* Adjust thickness and color as needed */
@@ -93,8 +99,26 @@ body {
     border:2px rounded;
   }
 
-  
-
   .error-msg{
     font-size: 20px;
   }
+
+  .results-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    margin-top: 20px;
+    padding: 10px;
+    color: white;
+}
+
+.movie-item {
+    cursor: pointer;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    color: white;
+}
+
+.movie-item:hover {
+    background-color: #f1f1f1;
+}
