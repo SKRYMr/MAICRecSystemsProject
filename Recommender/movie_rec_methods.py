@@ -230,11 +230,6 @@ def neighbours_recommend(movie_id: int, top_n: int = 5, pg: str = None, auto_pg:
     recommended_movies = format_movie_recommendations(recommended_movies.sort_values("rating", ascending=False),
                                                       round_to=2, top_n=top_n)
 
-    print(recommended_movies.index)
-    print(recommended_movies.title)
-    print(recommended_movies.rating)
-    print(recommended_movies.ratings_count)
-
     neighbourhood = Neighbourhood(neighbourhood_id=target_movie.movie_id,
                                   movie_ids=list(recommended_movies.index),
                                   ratings=list(recommended_movies.rating),
