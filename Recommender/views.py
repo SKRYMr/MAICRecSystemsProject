@@ -6,7 +6,7 @@ from sortedcontainers import SortedList
 from django_pandas.io import read_frame
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
-from django.db.models import Avg, Count, QuerySet
+from django.db.models import Avg, Count
 from django.http import JsonResponse
 from django.shortcuts import render
 from .core import BEST_STAR_RATINGS, MINIMUM_RATINGS_PERCENT
